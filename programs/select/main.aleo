@@ -12,6 +12,10 @@ record Row_select:
     owner as address.private;
     data as Desc_select.private;
 
+struct Desc_table2:
+    col_2_1 as field;
+    col_2_2 as field;
+    col_2_3 as boolean;
 
 // OFFCHAIN FUNCTIONS
 
