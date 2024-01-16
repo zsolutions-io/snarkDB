@@ -42,7 +42,6 @@ function insert_table2:
     input r1 as field.private; // former state
     input r2 as scalar.private; // rng
 
-    // assert.eq self.caller aleo1mgfq6g40l6zkhsm063n3uhr43qk5e0zsua5aszeq5080dsvlcvxsn0rrau;
     hash.bhp256 r0 into r3 as field;
     add r1 r3 into r4;
     commit.bhp256 r4 r2 into r5 as field;
@@ -51,14 +50,12 @@ function insert_table2:
     output r4 as field.private; // new state
     output r5 as field.public; // new state commitment
     output r6 as Row_table2.record; // encrypted row
-    
 
 function delete_table2:
     input r0 as Desc_table2.private; // data
     input r1 as field.private; // former state
     input r2 as scalar.private; // rng
 
-    // assert.eq self.caller aleo1mgfq6g40l6zkhsm063n3uhr43qk5e0zsua5aszeq5080dsvlcvxsn0rrau;
     hash.bhp256 r0 into r3 as field;
     sub r1 r3 into r4;
     commit.bhp256 r4 r2 into r5 as field;
@@ -66,14 +63,12 @@ function delete_table2:
     output r4 as field.private; // new state
     output r5 as field.public; // new state commitment
 
-
 function update_table2:
     input r0 as Desc_table2.private; // former data
     input r1 as Desc_table2.private; // new data
     input r2 as field.private; // former state
     input r3 as scalar.private; // rng
 
-    // assert.eq self.caller aleo1mgfq6g40l6zkhsm063n3uhr43qk5e0zsua5aszeq5080dsvlcvxsn0rrau;
     hash.bhp256 r0 into r4 as field;
     sub r2 r4 into r5;
     hash.bhp256 r1 into r6 as field;
