@@ -1,0 +1,50 @@
+diff --git a/node_modules/@aleohq/sdk/.DS_Store b/node_modules/@aleohq/sdk/.DS_Store
+new file mode 100644
+index 0000000..3bc3844
+Binary files /dev/null and b/node_modules/@aleohq/sdk/.DS_Store differ
+diff --git a/node_modules/@aleohq/sdk/dist/index.js b/node_modules/@aleohq/sdk/dist/index.js
+index 63224a4..ca9f088 100644
+--- a/node_modules/@aleohq/sdk/dist/index.js
++++ b/node_modules/@aleohq/sdk/dist/index.js
+@@ -31,6 +31,15 @@ import { wrap } from 'comlink';
+  * // Verify a signature
+  * myRandomAccount.verify(hello_world, signature)
+  */
++
++const getProgramCust = async (t, program_id) => {
++    const program_name = program_id.split('.')[0];
++    const program_dir = `${t.resources_dir}/programs/${program_name}`;
++    const program_code_path = `${program_dir}/main.aleo`;
++    const program_code = await t.fs.readFile(program_code_path, 'utf8');
++    return program_code;
++};
++
+ class Account {
+     _privateKey;
+     _viewKey;
+@@ -603,7 +612,7 @@ class AleoNetworkClient {
+         }
+         catch (error) {
+             try {
+-                return Program.fromString((await this.getProgram(inputProgram)));
++                return Program.fromString((await getProgramCust(this, inputProgram)));
+             }
+             catch (error) {
+                 throw new Error(`${inputProgram} is neither a program name or a valid program`);
+@@ -646,7 +655,7 @@ class AleoNetworkClient {
+             for (let i = 0; i < importList.length; i++) {
+                 const import_id = importList[i];
+                 if (!imports.hasOwnProperty(import_id)) {
+-                    const programSource = await this.getProgram(import_id);
++                    const programSource = await getProgramCust(this, import_id);
+                     const nestedImports = await this.getProgramImports(import_id);
+                     for (const key in nestedImports) {
+                         if (!imports.hasOwnProperty(key)) {
+@@ -2330,6 +2339,7 @@ class ProgramManager {
+      *
+      * @returns {Promise<FunctionKeyPair | Error>}
+      */
++
+     async synthesizeKeys(program, function_id, inputs, privateKey) {
+         // Resolve the program imports if they exist
+         let imports;

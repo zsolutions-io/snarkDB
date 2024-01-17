@@ -1,36 +1,54 @@
-import table2.aleo;
+import table2.aleo; // FROM table
 
-program select.aleo;
-
-// SELECT col_2_1 as col FROM aleo1jkj7v80w3t5e6rtafhqs5x03jpe7p68prvpyvna8g0ftzfcur5gq77uu2j.table2 WHERE col_2_3 = true;
+program select.aleo; 
 
 
+// SELECT col_2_1 as col FROM aleo1q6zgvkre2d2thyjhx3aqk4ac42ll259je3gztsvvdrlpmd65fyxq0dkrtv.table2 WHERE col_2_3 = true;
+// Request reciever : aleo1rsraxa4ywh3yqrywmg5te6ymy4g9e3u5u305y9jrd78cmh45zg8selrqus
+
+
+// SELECT close
 struct Desc_select:
     col as field;
+
 
 record Row_select:
     owner as address.private;
     data as Desc_select.private;
+
 
 struct Desc_table2:
     col_2_1 as field;
     col_2_2 as field;
     col_2_3 as boolean;
 
-// OFFCHAIN FUNCTIONS
 
 function process_select:
-    input r0 as table2.aleo/Row_table2.record; // data
-    input r1 as field.private; // former state
-    input r2 as scalar.private; // rng
+    input r0 as table2.aleo/Row_table2.record; // row record
+    input r1 as scalar.private; // cpk
+    input r2 as field.private; // previous state
+    input r3 as scalar.private; // previous cpk
+    input r4 as field.public; // previous commit
 
-    hash.bhp256 r0.data into r3 as field;
-    add r1 r3 into r4;
-    commit.bhp256 r4 r2 into r5 as field;
+    commit.bhp256 r2 r3 into r5 as field;
+    assert.eq r4 r5;
 
-    cast r0.data.col_2_1 into r6 as Desc_select;
-    cast aleo1jkj7v80w3t5e6rtafhqs5x03jpe7p68prvpyvna8g0ftzfcur5gq77uu2j r6 into r7 as bool;
+    hash.bhp256 r0.data into r6 as field;
+    add r2 r6 into r7; // new state
+    commit.bhp256 r7 r1 into r8 as field; // new commit
 
-    output r4 as field.private; // new state
-    output r5 as field.public; // new state commitment
-    output r7 as Row_table2.record; // encrypted row
+    cast r0.data.col_2_1 into r9 as Desc_select; // SELECT close | r9 is selected columns
+    is.eq r0.data.col_2_3 true into r10; // WHERE close | r10 is where condition
+    
+    ternary r10 aleo1rsraxa4ywh3yqrywmg5te6ymy4g9e3u5u305y9jrd78cmh45zg8selrqus aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc into r11; // Request emitter
+    cast r11 r9 into r12 as Row_select.record; // new row
+
+    output r7 as field.private; // new state
+    output r8 as field.public; // new commit
+    output r12 as Row_select.record; // encrypted result
+
+
+function commit_null_state: // Prove a commit represents a null state
+    input r0 as scalar.private; // commit private key (cpk)
+    commit.bhp256 0field r0 into r1 as field;
+    output r1 as field.public;

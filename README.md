@@ -64,3 +64,15 @@ FROM aleo103nyxgwktwavyv4l06mns6cqze3s9l6dwu7w8hvfkasrzrs4k5pscv370h.first_table
 - INSERT TABLE
 - Multiple table WHERE
 - JOIN
+
+## Ideas
+
+### Fake insertions
+
+To prevent requester from knowing how many rows requested table has,
+introduce fake insert (row record will have a fake boolean).
+The total amount of rows inserted between every commit push on chain will be a constant
+(fake + net reals (insertion - deletions)). The throughput of data hence has a maximum.
+
+Fake rows cannot be selected as they are always rejected on select request
+(sent to aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc).
