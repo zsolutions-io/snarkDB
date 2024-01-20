@@ -1,9 +1,8 @@
 diff --git a/node_modules/@aleohq/sdk/.DS_Store b/node_modules/@aleohq/sdk/.DS_Store
 new file mode 100644
-index 0000000..3bc3844
-Binary files /dev/null and b/node_modules/@aleohq/sdk/.DS_Store differ
+index 0000000..e69de29
 diff --git a/node_modules/@aleohq/sdk/dist/index.js b/node_modules/@aleohq/sdk/dist/index.js
-index 63224a4..ca9f088 100644
+index 63224a4..5576a24 100644
 --- a/node_modules/@aleohq/sdk/dist/index.js
 +++ b/node_modules/@aleohq/sdk/dist/index.js
 @@ -31,6 +31,15 @@ import { wrap } from 'comlink';
@@ -40,7 +39,17 @@ index 63224a4..ca9f088 100644
                      const nestedImports = await this.getProgramImports(import_id);
                      for (const key in nestedImports) {
                          if (!imports.hasOwnProperty(key)) {
-@@ -2330,6 +2339,7 @@ class ProgramManager {
+@@ -2210,9 +2219,6 @@ class ProgramManager {
+             }
+         }
+         // Run the program offline and return the result
+-        console.log("Running program offline");
+-        console.log("Proving key: ", provingKey);
+-        console.log("Verifying key: ", verifyingKey);
+         return ProgramManager$1.executeFunctionOffline(executionPrivateKey, program, function_name, inputs, proveExecution, false, imports, provingKey, verifyingKey, this.host, offlineQuery);
+     }
+     /**
+@@ -2330,6 +2336,7 @@ class ProgramManager {
       *
       * @returns {Promise<FunctionKeyPair | Error>}
       */

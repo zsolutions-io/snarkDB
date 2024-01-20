@@ -3,8 +3,8 @@ import table2.aleo; // FROM table
 program select.aleo; 
 
 
-// SELECT col_2_1 as col FROM aleo1q6zgvkre2d2thyjhx3aqk4ac42ll259je3gztsvvdrlpmd65fyxq0dkrtv.table2 WHERE col_2_3 = true;
-// Request reciever : aleo1rsraxa4ywh3yqrywmg5te6ymy4g9e3u5u305y9jrd78cmh45zg8selrqus
+// SELECT col_2_1 as col FROM aleo1386l43hhduwmh7jdpnsfg7twwnkhzmjfp2zg89qadqq5al2d8sgsw96584.table2 WHERE col_2_3 = true;
+// Request reciever : aleo1l96m5aqndzqm6253xee2j887xxh4c6w6h9ksdaknst9mq3xrfv8senek7g
 
 
 // SELECT close
@@ -14,8 +14,9 @@ struct Desc_select:
 
 record Row_select:
     owner as address.private;
-    psk as scalar.private;
     data as Desc_select.private;
+    decoy as boolean.private;
+    psk as scalar.private;
 
 
 struct Desc_table2:
@@ -36,21 +37,30 @@ function process_select:
     assert.eq r4 r6;
 
     hash.bhp256 r0.data into r7 as field;
-    add r2 r7 into r8; // new state
-    commit.bhp256 r8 r1 into r9 as field; // new commit
+    ternary r0.decoy 0field r7 into r8;// To add
+    add r2 r8 into r9; // new state
+    commit.bhp256 r9 r1 into r10 as field; // new commit
 
-    cast r0.data.col_2_1 into r10 as Desc_select; // SELECT close | r10 is selected columns
-    is.eq r0.data.col_2_3 true into r11; // WHERE close | r11 is where condition
+    cast r0.data.col_2_1 into r11 as Desc_select; // SELECT close | r11 is selected columns
+    is.eq r0.data.col_2_3 true into r12; // WHERE close | r12 is where condition
     
-    ternary r11 aleo1rsraxa4ywh3yqrywmg5te6ymy4g9e3u5u305y9jrd78cmh45zg8selrqus aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc into r12; // Request emitter
-    cast r12 r5 r10 into r13 as Row_select.record; // new row
+    not r0.decoy into r13; // Not decoy
+    and r13 r12 into r14; // Is result data relevant
+    not r14 into r15;
 
-    commit.bhp256 r10 r5 into r14 as field; // output process commit
-    // commit.bhp256 r0.data r0.psk into r15 as field; // input process commit FOR
+    // Empty result creation if result data not relevant 
+    ternary r14 r11.col 0field into r16;
+    // ... for each selected column
 
-    output r8 as field.private; // new state
-    output r9 as field.public; // new commit
-    output r13 as Row_select.record; // encrypted result
-    output r14 as field.public; // output process commit
-    // output r15 as field.public; // input process commit
+    cast r16 into r17 as Desc_select;
+    cast aleo1l96m5aqndzqm6253xee2j887xxh4c6w6h9ksdaknst9mq3xrfv8senek7g r17 r15 r5 into r18 as Row_select.record; // new row
+
+    commit.bhp256 r17 r5 into r19 as field; // output process commit
+    // commit.bhp256 r0.data r0.psk into v_0000_0001 as field; // input process commit FOR
+
+    output r9 as field.private; // new state
+    output r10 as field.public; // new commit
+    output r18 as Row_select.record; // encrypted result
+    output r19 as field.public; // output process commit
+    // output v_0000_0001 as field.public; // input process commit
 

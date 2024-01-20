@@ -67,17 +67,8 @@ FROM aleo103nyxgwktwavyv4l06mns6cqze3s9l6dwu7w8hvfkasrzrs4k5pscv370h.first_table
 
 ## Ideas
 
-### Fake insertions
+  Private Key  APrivateKey1zkpHkJ47qxn8FjHgYhKotRv9cJxeGCLg42tezqhd6xZNWYD
+      Address  aleo1386l43hhduwmh7jdpnsfg7twwnkhzmjfp2zg89qadqq5al2d8sgsw96584
 
-To prevent requester from knowing how many rows requested table has,
-introduce fake insert (row record will have a fake boolean).
-The total amount of rows inserted between every commit push on chain will be a constant
-(fake + net reals (insertion - deletions)). The throughput of data hence has a maximum.
-
-Fake rows cannot be selected as they are always rejected on select request
-(sent to aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc).
-
-todo :
-
-- fake commits
-- verification input generation
+  Private Key  APrivateKey1zkpEUzXebwrhENw2EpDwvfW1Y6n42HUpwpDnD65jGx3aQ2r
+      Address  aleo1l96m5aqndzqm6253xee2j887xxh4c6w6h9ksdaknst9mq3xrfv8senek7g
