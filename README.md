@@ -76,3 +76,8 @@ The total amount of rows inserted between every commit push on chain will be a c
 
 Fake rows cannot be selected as they are always rejected on select request
 (sent to aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc).
+
+todo :
+
+- fake commits
+- verification input generation
