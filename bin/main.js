@@ -12,16 +12,23 @@ import {
   NetworkRecordProvider,
   ProgramManager,
 } from "@aleohq/sdk";
+
+
+import {
+  initThreadPool,
+} from '@aleohq/wasm';
+import fs from 'fs/promises';
+
 import dotenv from 'dotenv';
 import path from 'path';
 import { exit } from "process";
-
+import { resources_dir } from '../lib/utils/index.js';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 
-const load_context = (argv) => {
+const load_context = async (argv) => {
   let context = {};
   const endpoint = argv?.endpoint ? argv.endpoint : process.env.NETWORK_API_URL;
   context.endpoint = endpoint;
@@ -45,7 +52,10 @@ const load_context = (argv) => {
     const recordProvider = new NetworkRecordProvider(account, networkClient);
 
     const programManager = new ProgramManager(endpoint, keyProvider, recordProvider);
-    programManager.setAccount(account)
+    programManager.setAccount(account);
+    await initThreadPool();
+    programManager.networkClient.fs = fs;
+    programManager.networkClient.resources_dir = resources_dir;
 
     context = {
       ...context,
@@ -103,7 +113,7 @@ ${usage_description}: ${program_name} ${execute_cmd_pattern} ${optional_args_pat
 `;
 
 const execute_entrypoint = async ({ argv }) => {
-  load_context(argv);
+  await load_context(argv);
   const query = argv?._?.[1];
 
   if (!query) {
@@ -126,7 +136,7 @@ ${usage_description}: ${program_name} ${result_cmd_pattern} ${optional_args_patt
 `;
 
 const result_entrypoint = async ({ argv }) => {
-  load_context(argv);
+  await load_context(argv);
   const query_id = argv?._?.[1];
 
   if (!query_id) {
