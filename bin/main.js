@@ -51,9 +51,9 @@ const load_context = async (argv) => {
     const networkClient = new AleoNetworkClient(endpoint);
     const recordProvider = new NetworkRecordProvider(account, networkClient);
 
+    await initThreadPool();
     const programManager = new ProgramManager(endpoint, keyProvider, recordProvider);
     programManager.setAccount(account);
-    await initThreadPool();
     programManager.networkClient.fs = fs;
     programManager.networkClient.resources_dir = resources_dir;
 
@@ -114,7 +114,7 @@ ${usage_description}: ${program_name} ${execute_cmd_pattern} ${optional_args_pat
 
 const execute_entrypoint = async ({ argv }) => {
   await load_context(argv);
-  const query = argv?._?.[1];
+  const query = argv?.query;
 
   if (!query) {
     return console.log(execute_help_message);
@@ -137,7 +137,7 @@ ${usage_description}: ${program_name} ${result_cmd_pattern} ${optional_args_patt
 
 const result_entrypoint = async ({ argv }) => {
   await load_context(argv);
-  const query_id = argv?._?.[1];
+  const query_id = argv?.requestId;
 
   if (!query_id) {
     return console.log(result_help_message);
@@ -154,7 +154,7 @@ const actions = [
   execute_action,
 ];
 
-const argv = yargs(process.argv.slice(2))
+const argv = await yargs(process.argv.slice(2))
   .command('$0', 'help', () => { }, default_entrypoint)
   .command(
     execute_cmd_pattern,
