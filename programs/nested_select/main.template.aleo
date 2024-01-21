@@ -14,7 +14,7 @@ struct Desc_nested_select:
 struct Desc_select:
     col as field;
 
-record Row_select:
+record Row_nested_select:
     owner as address.private;
     data as Desc_nested_select.private;
     decoy as boolean.private;
@@ -23,7 +23,7 @@ record Row_select:
 
 
 function process_select:
-    input v_0000_0016 as nested_select.aleo/Row_select.record; // row record
+    input v_0000_0016 as select.aleo/Row_select.record; // row record
     input v_0000_0015 as scalar.private; // csk
     input v_0000_0014 as field.private; // previous state
     input v_0000_0013 as scalar.private; // previous csk
@@ -52,7 +52,7 @@ function process_select:
     // ... for each selected column
 
     cast v_0000_0020 into v_0000_0019 as Desc_nested_select;
-    cast aleo1l96m5aqndzqm6253xee2j887xxh4c6w6h9ksdaknst9mq3xrfv8senek7g v_0000_0019 v_0000_0022 v_0000_0011 into v_0000_0003 as Row_nested_select.record; // new row
+    cast aleo15wktn0yr8vhxfzh9td7zhnrge9u6hra8tg4qtv2p9dumwc9mwgzqq63rlg v_0000_0019 v_0000_0022 v_0000_0011 into v_0000_0003 as Row_nested_select.record; // new row
 
     commit.bhp256 v_0000_0019 v_0000_0011 into v_0000_0002 as field; // output process commit
     commit.bhp256 v_0000_0016.data v_0000_0016.psk into v_0000_0001 as field; // input process commit FOR
