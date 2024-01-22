@@ -55,11 +55,6 @@ record I000_njfgxxgjiqiceeavgt3djc6rv:
     owner as address.private;
     data as D000_njfgxxgjiqiceeavgt3djc6rv.private;
 
-record RqC_njfgxxgjiqiceeavgt3djc6rv:
-    owner as address.private;
-    aggregate as Aggr_njfgxxgjiqiceeavgt3djc6rv.private;
-    current_rows_hash as u64.private;
-    current_inters_hash as u64.private;
 
 record RqF_njfgxxgjiqiceeavgt3djc6rv:
     owner as address.private;
