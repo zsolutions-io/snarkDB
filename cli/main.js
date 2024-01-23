@@ -3,7 +3,7 @@ import {
   execute_query,
   retrieve_query_result,
   display_error
-} from "../lib/zksql/queries/index.js";
+} from "../lib/snarkdb/queries/index.js";
 
 import {
   Account,
@@ -76,7 +76,7 @@ const load_context = async (argv) => {
   global.context = context;
 }
 
-const program_name = "zksql";
+const program_name = "snarkdb";
 
 const usage_description = "Usage";
 const positional_args_pattern = `<action>`;

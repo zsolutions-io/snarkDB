@@ -1,8 +1,8 @@
 {
-  "name": "zksql",
+  "name": "snarkdb",
   "version": "1.0.0",
   "description": "",
-  "main": "bin/main.js",
+  "main": "cli/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "patch-package; cp patches/aleo_wasm.wasm node_modules/@aleohq/wasm/dist/assets/aleo_wasm.wasm"
@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "bin": {
-    "main": "./bin/main.js"
+    "main": "./cli/main.js"
   },
   "dependencies": {
     "@aleohq/sdk": "^0.6.9",
