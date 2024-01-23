@@ -83,7 +83,7 @@ const get_help_message = (
   actions
 ) => {
   const intro = (
-    `${usage_description}\n${program_name} ${args_pattern}\n\n${"Description:".yellow.bold}\n  ${description}`
+    `${usage_description}\n  ${program_name} ${args_pattern}\n\n${"Description:".yellow.bold}\n  ${description}`
   );
   const commands_help = actions.map(
     ({ name, description }) => (
@@ -127,7 +127,7 @@ const default_entrypoint = (argv) => {
 let result = await yargs(process.argv.slice(2))
   .command(
     '$0', 'help', () => { }, default_entrypoint
-  ).scriptName(`${usage_description}\n${program_name.bold.green}`)
+  ).scriptName(`${usage_description}\n  ${program_name.bold.green}`)
   ;
 
 
