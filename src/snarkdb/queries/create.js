@@ -46,7 +46,7 @@ export const execute_create_table_query = async (query) => {
     table_name,
     columns
   );
-  const transaction_id = await table.deploy();
+  //const transaction_id = await table.deploy();
 
   console.log(`Table '${table_name}' created.`);
 }

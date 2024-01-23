@@ -7,7 +7,7 @@ import {
   save_select_results,
   process_select_from_select,
   verify_select_from_select
-} from '../db/commit.js';
+} from 'snarkdb/db/commit.js';
 
 
 export const retrieve_query_result = async (query_id) => {

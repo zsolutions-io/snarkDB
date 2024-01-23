@@ -4,19 +4,17 @@ import {
   verify_execution,
   load_program_keys,
   load_cached_program_source,
-} from '../../aleo/proof.js';
+} from 'aleo/proof.js';
 
-import { Table, description_struct_name } from '../sql/table.js';
+import { Table, description_struct_name } from 'snarkdb/sql/table.js';
 
 
 import fs from 'fs/promises';
 import fsExists from 'fs.promises.exists'
 
-import { random_from_type, null_value_from_type, parse_record } from '../../aleo/types/index.js';
+import { random_from_type, null_value_from_type, parse_record } from 'aleo/types/index.js';
 
-import { resources_dir } from '../../utils/index.js';
-import { save_object } from '../../utils/fs.js';
-import { row_record_name } from '../sql/table.js';
+import { resources_dir, save_object } from 'utils/index.js';
 import shuffle from 'crypto-shuffle';
 
 
