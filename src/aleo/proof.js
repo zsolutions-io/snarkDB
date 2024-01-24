@@ -20,14 +20,7 @@ import {
 import fs from 'fs/promises';
 import fsExists from 'fs.promises.exists'
 
-import { resources_dir, programs_dir, programs_to_copy } from '../utils/index.js';
-
-//dotenv.config();
-//await initThreadPool();
-//const defaultHost = process.env.NETWORK_API_URL;
-//const programManager = new ProgramManager(defaultHost, undefined, undefined);
-//programManager.networkClient.fs = fs;
-//programManager.networkClient.resources_dir = resources_dir;
+import { programs_dir, programs_dir, programs_to_copy } from '../utils/index.js';
 
 
 export async function load_cached_program_source(
@@ -239,7 +232,7 @@ export async function load_program_keys_from_files(
 
 
 const program_dir_path = (program_id) => {
-  return `${resources_dir}/programs/${program_id}`;
+  return `${programs_dir}/${program_id}`;
 }
 
 

@@ -164,7 +164,6 @@ for (const command of Object.values(commands)) {
   });
 }
 
-
 export const argv = await result.argv;
 
 

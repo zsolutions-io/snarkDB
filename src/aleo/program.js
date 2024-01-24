@@ -13,9 +13,9 @@ import {
   parse_type,
   parse_type_with_visibility
 } from '../aleo/index.js';
-import { type } from 'os';
-import { format } from 'path';
 
+import { save_file } from 'utils/index.js';
+import { get_program_dir_path } from "snarkdb/db/index.js";
 
 export class Program {
   name;
@@ -94,6 +94,16 @@ export class Program {
 
   get functions_code() {
     return this.functions.map(function_to_code).join("\n");
+  }
+
+  async save() {
+    const dir = get_program_dir_path(this.name);
+    return await save_file(
+      dir,
+      "main",
+      "aleo",
+      this.code
+    );
   }
 }
 

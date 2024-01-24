@@ -1,7 +1,6 @@
 import { zip, diff, get_duplicates, inter } from "../../utils/index.js";
 import { Program, is_valid_address } from "../../aleo/index.js";
 
-
 export class Table {
   constructor(database_name, table_name, program, as = null) {
     this.program = program;
@@ -64,6 +63,10 @@ export class Table {
     const row = query_to_insert_row(this.columns, query);
     const args = [row_to_record_string(row)];
     await this.program.call(this.create_function.name, args);;
+  }
+
+  async save() {
+    return await this.program.save();
   }
 }
 

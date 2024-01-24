@@ -6,6 +6,13 @@ import {
   load_cached_program_source,
 } from 'aleo/proof.js';
 
+import {
+  get_table_commits_dir,
+  get_select_preparations_dir,
+  get_select_results_dir,
+  get_select_executions_dir
+} from "./index.js"
+
 import { Table, description_struct_name } from 'snarkdb/sql/table.js';
 
 
@@ -14,7 +21,7 @@ import fsExists from 'fs.promises.exists'
 
 import { random_from_type, null_value_from_type, parse_record } from 'aleo/types/index.js';
 
-import { resources_dir, save_object } from 'utils/index.js';
+import { save_object } from 'utils/index.js';
 import shuffle from 'crypto-shuffle';
 
 
@@ -199,27 +206,6 @@ export const get_table_last_state = async (database, table_name) => {
   };
 }
 
-
-const get_request_dir = (request_id) => {
-  return `${resources_dir}/requests/${request_id}`;
-}
-
-
-const get_table_commits_dir = (database, table_name) => {
-  return `${resources_dir}/databases/${database}/tables/${table_name}/commits`;
-}
-
-const get_select_preparations_dir = (request_id, database, table_name) => {
-  return `${get_request_dir(request_id)}/preparations/${database}/${table_name}`;
-}
-
-const get_select_results_dir = (request_id) => {
-  return `${get_request_dir(request_id)}/results`;
-}
-
-const get_select_executions_dir = (request_id, database, table_name) => {
-  return `${get_request_dir(request_id)}/executions/${database}/${table_name}`;
-}
 
 export const save_execution = async (
   request_id, database, table_name, index, execution

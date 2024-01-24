@@ -1,4 +1,4 @@
-import { Table } from '../sql/table.js';
+import { Table } from 'snarkdb/sql/table.js';
 
 
 // BIGINT", "BINARY", "BIT", "CHAR", "DATE", "DATETIME", "DECIMAL", "DOUBLE", "ENUM", "FLOAT", "GEOMETRY", "GEOMETRYCOLLECTION", "INT", "INTEGER", "JSON", "LINESTRING", "LONGTEXT", "MEDIUMINT", "MEDIUMTEXT", "MULTILINESTRING", "MULTIPOINT", "MULTIPOLYGON", "NUMERIC", "POINT", "POLYGON", "SET", "SMALLINT", "TEXT", "TIME", "TIMESTAMP", "TINYINT", "TINYTEXT", "VARBINARY", "VARCHAR", "YEAR", "blob", "boolean", "longblob", "mediumblob", "tinyblob"
@@ -47,6 +47,9 @@ export const execute_create_table_query = async (query) => {
     columns
   );
   //const transaction_id = await table.deploy();
+
+  await table.save();
+  console.log(table.program.code)
 
   console.log(`Table '${table_name}' created.`);
 }

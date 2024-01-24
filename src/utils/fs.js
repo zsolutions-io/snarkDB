@@ -7,10 +7,26 @@ export const save_object = async (
   filename,
   obj,
 ) => {
-  const obj_path = `${dir_path}/${filename}.json`;
-  const obj_data = JSON.stringify(obj, null, 2);
+  await save_file_detailed(
+    dir_path,
+    filename,
+    "json",
+    JSON.stringify(obj, null, 2),
+  );
+}
+
+
+export const save_file = async (
+  dir_path,
+  filename,
+  extension,
+  content,
+) => {
+  const obj_path = `${dir_path}/${filename}.${extension}`;
+  const obj_data = content;
   if (!await fsExists(dir_path)) {
     await fs.mkdir(dir_path, { recursive: true });
   }
   await fs.writeFile(obj_path, obj_data);
 }
+
