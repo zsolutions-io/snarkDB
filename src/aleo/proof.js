@@ -20,8 +20,8 @@ import {
 import fs from 'fs/promises';
 import fsExists from 'fs.promises.exists'
 
-import { programs_dir, programs_dir, programs_to_copy } from '../utils/index.js';
-
+import { programs_dir, programs_to_copy } from '../utils/index.js';
+import { resources_programs_dir } from 'snarkdb/db/index.js';
 
 export async function load_cached_program_source(
   program_id
@@ -29,7 +29,7 @@ export async function load_cached_program_source(
   const copy_from_program_dir_if_not_exist = programs_to_copy.includes(program_id);
   const program_dir = program_dir_path(program_id);
   const program_dir_exists = await fsExists(program_dir);
-  const program_code_path = `${program_dir}/main.aleo`;
+  const program_code_path = `${resources_programs_dir}/main.aleo`;
   if (!program_dir_exists && !copy_from_program_dir_if_not_exist) {
     throw `Program ${JSON.stringify(program_id)} not found.`;
   }
@@ -230,10 +230,6 @@ export async function load_program_keys_from_files(
   return [proving_key, verifying_key];
 }
 
-
-const program_dir_path = (program_id) => {
-  return `${programs_dir}/${program_id}`;
-}
 
 
 const program_function_paths = (program_id, function_name) => {
