@@ -9,6 +9,9 @@ import {
   verify_select_from_select
 } from 'snarkdb/db/commit.js';
 
+import {
+  Address
+} from '@aleohq/wasm';
 
 export const retrieve_query_result = async (query_id) => {
 
@@ -23,6 +26,7 @@ export const retrieve_query_result = async (query_id) => {
     "table2",
   );
   */
+  console.log(Address.from_scalar("0scalar").to_string());
 
   const table2 = {
     name: "table2",
