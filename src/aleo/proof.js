@@ -27,8 +27,7 @@ export async function load_cached_program_source(
   program_id
 ) {
   const copy_from_program_dir_if_not_exist = programs_to_copy.includes(program_id);
-  const program_dir = program_dir_path(program_id);
-  const program_dir_exists = await fsExists(program_dir);
+  const program_dir_exists = await fsExists(resources_programs_dir);
   const program_code_path = `${resources_programs_dir}/main.aleo`;
   if (!program_dir_exists && !copy_from_program_dir_if_not_exist) {
     throw `Program ${JSON.stringify(program_id)} not found.`;

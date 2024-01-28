@@ -1,5 +1,11 @@
-import { zip, diff, get_duplicates, inter } from "../../utils/index.js";
-import { Program, is_valid_address } from "../../aleo/index.js";
+import { zip, diff, get_duplicates, inter } from "utils/index.js";
+import { Program, is_valid_address } from "aleo/index.js";
+import { empty_struct_data } from "snarkdb/db/commit.js";
+import { get_table_definitions_dir } from "snarkdb/db/index.js";
+import { save_object } from "utils/index.js";
+
+import { random_from_type } from 'aleo/types/index.js';
+
 
 export class Table {
   constructor(database_name, table_name, program, as = null) {
@@ -66,6 +72,16 @@ export class Table {
   }
 
   async save() {
+    const schema = empty_struct_data(this.description_struct);
+    const description = {
+      schema,
+      settings: {
+        max_new_rows_per_push: Number(process.env.MAX_NEW_ROWS_PER_PUSH),
+      },
+      view_key: random_from_type("scalar"),
+    };
+    const table_definitions_dir = get_table_definitions_dir(this.database, this.name);
+    await save_object(table_definitions_dir, "description", description);
     return await this.program.save();
   }
 }

@@ -396,7 +396,7 @@ const execute_select_on_commits = async (
       (a, b) => a - b
     );
 
-  const empty_row_data = await get_empty_row_data(database, request_id, table.name);
+  const empty_row_data = await get_empty_row_data(database, request_id, table.name, "private");
 
   let preparation_index = 0;
   for (
@@ -440,13 +440,13 @@ const execute_select_on_commits = async (
 }
 
 
-const get_empty_row_data = async (database, select_name, table_name) => {
+const get_empty_row_data = async (database, select_name, table_name, visibility) => {
   const program_code = await load_cached_program_source(select_name);
-  return get_empty_row_data_from_code(database, program_code, table_name);
+  return get_empty_row_data_from_code(database, program_code, table_name, visibility);
 }
 
 
-const get_empty_row_data_from_code = (database, program_code, table_name) => {
+const get_empty_row_data_from_code = (database, program_code, table_name, visibility) => {
   const select = Table.from_code(database, program_code);
   const desc_name = description_struct_name(table_name);
   let description_struct = null;
@@ -461,13 +461,17 @@ const get_empty_row_data_from_code = (database, program_code, table_name) => {
     );
   }
 
+  return empty_struct_data(description_struct, visibility);
+}
+
+export const empty_struct_data = (struct, visibility) => {
   return (
     "{"
-    + description_struct
+    + struct
       .fields
       .map(
         (field) => (
-          `${field.name}:${null_value_from_type(field.type, "private")}`
+          `${field.name}:${null_value_from_type(field.type, visibility)}`
         )
       )
       .join(",")

@@ -14,9 +14,9 @@ Update it with your own Aleo private key.
 ## Create Table
 
 ```bash
-node . execute "\
+snarkdb execute "\
 CREATE TABLE first_table \
-  (column1 INT, column2 BOOLEAN) \
+  (column1 INT, column2 BOOLEAN)
 "
 ```
 

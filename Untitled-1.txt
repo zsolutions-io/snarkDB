@@ -1,0 +1,49 @@
+DB EVENTS (PRIVATE)
+
+ELEMENTS
+B C E F G H I J K L M N O P
+
+B
+s_B*(B.a)*G   s_B*(B.b)*G   s_B*(B.c)*G
+
+h(B.a^2) h(B.b^2) h(B.c^2)
+
+h(B.a^3) h(B.b^3) h(B.c^3)
+
+h(B.a^4) h(B.b^4) h(B.c^4)
+
+
+
+
+   Period 1          Period 2             Period 3             Period 4             Period 5
+PUSH              PUSH               PUSH                 PUSH             PUSH
+| +A +B -A +C +D  |  +E +F -D +G +H  |  +I +J             |                |              
+
+
+
+
+
+   PUSH              PUSH    
+    |                 |
+ state0             state1
+  csk0               csk1
+commit0             commit1
+
+
+
+   PUSH              PUSH    
+    | +f +B +C +f +D  |
+ state0             state1
+  csk0               csk1
+commit0             commit1
+
+
+
+
+DB NEW (PUBLIC)
+
++A +f +f +B +f +C 
+
+
+
+

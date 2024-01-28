@@ -7,7 +7,7 @@ export const save_object = async (
   filename,
   obj,
 ) => {
-  await save_file_detailed(
+  await save_file(
     dir_path,
     filename,
     "json",
