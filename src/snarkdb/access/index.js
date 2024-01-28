@@ -85,12 +85,12 @@ export const read_access = async (tablename, database) => {
       }
     } catch (e) { }
   }
-  if (view_key === null) {
+  if (view_key_scalar === null) {
     throw new Error("You don't have access to this table.");
   }
-
   const view_key = ViewKey.from_scalar(view_key_scalar);
-  const dec_schema = view_key.decrypt_ciphertext(schema.ciphertext, schema.nonce);
+
+  const dec_schema = view_key.decrypt_ciphertext(schema.ciphertext, Address.from_string(database).to_group());
 
   return dec_schema;
 }
