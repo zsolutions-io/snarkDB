@@ -10,6 +10,7 @@ import {
 
 import { Table, description_struct_name } from 'snarkdb/sql/table.js';
 
+import { get_select_executions_dir, get_table_current_dir } from 'snarkdb/db/index.js';
 
 import fs from 'fs/promises';
 import fsExists from 'fs.promises.exists'
@@ -18,26 +19,33 @@ import { random_from_type, null_value_from_type, parse_record } from 'aleo/types
 
 import { save_object } from 'utils/index.js';
 import shuffle from 'crypto-shuffle';
+import crypto from 'crypto';
 
 
-export const insert_row = async (
+
+
+export const table_insert_row = async (
   table_name,
   row_data,
+  primary_key,
 ) => {
-  if (insert == null) insert = true; // default to insert
+  if (primary_key == null) primary_key = false;
+
+  const file_name =
+    primary_key ?
+      get_hash_of_primary_value(primary_key, row_data) :
+      crypto.randomUUID().replaceAll("-", "");
+
   const address = global.context.account.address().to_string();
 
-  if (insert)
-    commit.data = record_to_data(outputs[3].replace(/\s/g, ''));
-
-  await save_table_commit(
+  await save_table_row(
     address,
     table_name,
-    commit,
-    former_index + 1,
+    row_data,
+    file_name,
   );
 
-  return commit;
+  return row_data;
 };
 
 
@@ -104,6 +112,20 @@ export const save_table_commit = async (
   index
 ) => {
   const commits_dir = get_table_commits_dir(database, table_name);
+  await save_object(
+    commits_dir,
+    index,
+    commit,
+  );
+}
+
+export const save_table_row = async (
+  database,
+  table_name,
+  commit,
+  index
+) => {
+  const commits_dir = get_table_current_dir(database, table_name);
   await save_object(
     commits_dir,
     index,

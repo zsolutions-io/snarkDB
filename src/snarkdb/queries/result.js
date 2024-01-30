@@ -5,7 +5,8 @@ import {
   table_commit_decoy,
   save_select_results,
   process_select_from_select,
-  verify_select_from_select
+  verify_select_from_select,
+  table_insert_row
 } from 'snarkdb/db/commit.js';
 
 
@@ -26,7 +27,7 @@ export const retrieve_query_result = async (query_id) => {
     name: "table2",
     database: "aleo1386l43hhduwmh7jdpnsfg7twwnkhzmjfp2zg89qadqq5al2d8sgsw96584",
     settings: {
-      max_new_rows_per_push: 15,
+      max_row_amount: 15,
       push_period: 10 * 60 * 1000, // 10 minutes
     },
   };
@@ -35,6 +36,12 @@ export const retrieve_query_result = async (query_id) => {
     id: "3243118923128639625981619331863778124203358636486043328226068833027188090217field",
     index: 1,
   };
+
+
+  await table_insert_row(
+    "table2",
+    "{col_2_1:1field,col_2_2:0field,col_2_3:true}",
+  );
 
   /*
   await process_select_from_commit(
@@ -76,13 +83,13 @@ export const retrieve_query_result = async (query_id) => {
       );
       
       console.log("valid", res)
-      */
-
-  const query_result = await save_select_results(
-    "nested_select",
-    select
-  );
-  console.log("retrieved_query_result", query_result)
+      
+      const query_result = await save_select_results(
+        "nested_select",
+        select
+        );
+        console.log("retrieved_query_result", query_result)
+        */
 
   return;
 };

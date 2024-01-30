@@ -53,6 +53,8 @@ export class Table {
 
     const row = query_to_insert_row(this.columns, query);
     const args = [row_to_record_string(row)];
+
+    console.log("args", args)
     await this.program.call(this.create_function.name, args);;
   }
 
@@ -121,6 +123,10 @@ export const description_struct_name = (table_name) => (
 
 export const row_record_name = (table_name) => (
   `Row_${table_name}`
+);
+
+export const state_record_name = (table_name) => (
+  `State_${table_name}`
 );
 
 
