@@ -6,12 +6,7 @@ import {
   load_cached_program_source,
 } from 'aleo/proof.js';
 
-import {
-  get_table_commits_dir,
-  get_select_preparations_dir,
-  get_select_results_dir,
-  get_select_executions_dir
-} from "./index.js"
+
 
 import { Table, description_struct_name } from 'snarkdb/sql/table.js';
 
@@ -25,46 +20,13 @@ import { save_object } from 'utils/index.js';
 import shuffle from 'crypto-shuffle';
 
 
-export const table_commit_row = async (
+export const insert_row = async (
   table_name,
   row_data,
-  insert, // = true
-  former_state, // = appropriate if unset
-  former_index, // = appropriate if unset
 ) => {
   if (insert == null) insert = true; // default to insert
   const address = global.context.account.address().to_string();
 
-  const function_name = insert ? "insert" : "delete";
-  if (former_state == null || former_index == null) {
-    const table_last_state = await get_table_last_state(
-      address, table_name
-    );
-    former_state = table_last_state.state;
-    former_index = table_last_state.index;
-  }
-
-  const inputs = [
-    row_data,
-    former_state,
-    random_from_type("scalar")
-  ];
-
-  const { outputs } = await execute_offline(
-    table_name,
-    function_name,
-    inputs,
-    false,
-  );
-
-  const commit = {
-    hashed_data: outputs[0],
-    commit: outputs[2],
-    csk: inputs[2],
-    state: outputs[1],
-    insert: Boolean(insert),
-    decoy: false,
-  };
   if (insert)
     commit.data = record_to_data(outputs[3].replace(/\s/g, ''));
 

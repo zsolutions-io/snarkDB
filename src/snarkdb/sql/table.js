@@ -1,8 +1,9 @@
 import { zip, diff, get_duplicates, inter } from "utils/index.js";
 import { Program, is_valid_address } from "aleo/index.js";
 import { empty_struct_data } from "snarkdb/db/commit.js";
-import { get_table_definitions_dir } from "snarkdb/db/index.js";
+import { get_private_table_dir } from "snarkdb/db/index.js";
 import { save_object } from "utils/index.js";
+import { read_access } from "snarkdb/access/index.js";
 
 import { random_from_type } from 'aleo/types/index.js';
 
@@ -27,18 +28,6 @@ export class Table {
     return table_create_function(this.name);
   }
 
-  get update_function() {
-    return table_update_function(this.name);
-  }
-
-  get delete_function() {
-    return table_delete_function(this.name);
-  }
-
-  get is_view() {
-    return is_program_view(this.program);
-  }
-
   get columns() {
     for (const struct of this.program.structs) {
       if (struct.name === description_struct_name(this.name)) {
@@ -58,10 +47,6 @@ export class Table {
     );
   }
 
-  async deploy() {
-    return await this.program.deploy();
-  }
-
   async insert(query) {
     if (this.is_view)
       throw Error("Cannot insert into a view.");
@@ -76,12 +61,13 @@ export class Table {
     const description = {
       schema,
       settings: {
-        max_new_rows_per_push: Number(process.env.MAX_NEW_ROWS_PER_PUSH),
+        max_row_amount: Number(process.env.MAX_ROW_AMOUNT),
+        version: Number(process.env.VERSION),
       },
       view_key: random_from_type("scalar"),
     };
-    const table_definitions_dir = get_table_definitions_dir(this.database, this.name);
-    await save_object(table_definitions_dir, "description", description);
+    const table_definitions_dir = get_private_table_dir(this.database, this.name);
+    await save_object(table_definitions_dir, "description", description, true);
     return await this.program.save();
   }
 }
@@ -93,7 +79,7 @@ Table.from_parsed_table = async function ({
   as
 }) {
   const database = database_from_attribute(db);
-  const program = await Program.from_deployed(table);
+  const description = await read_access(table_name, database);
 
   return new Table(
     database,

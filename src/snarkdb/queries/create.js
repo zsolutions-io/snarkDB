@@ -9,7 +9,7 @@ import {
 const sql_to_aleo_types = {
   "INT": {
     "category": "integer",
-    "value": "field"
+    "value": "u128"
   },
   "BIGINT": {
     "category": "integer",
@@ -17,11 +17,11 @@ const sql_to_aleo_types = {
   },
   "REAL": {
     "category": "integer",
-    "value": "field"
+    "value": "u128"
   },
   "INTEGER": {
     "category": "integer",
-    "value": "field"
+    "value": "u128"
   },
   "BOOLEAN": {
     "category": "boolean",
@@ -48,9 +48,8 @@ export const execute_create_table_query = async (query) => {
   const table = Table.from_columns(
     global.context.account.address().to_string(),
     table_name,
-    columns
+    columns,
   );
-  //const transaction_id = await table.deploy();
 
   await table.save();
   console.log(table.program.code);

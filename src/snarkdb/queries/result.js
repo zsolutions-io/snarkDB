@@ -1,6 +1,5 @@
 
 import {
-  table_commit_row,
   process_select_from_commit,
   verify_select_from_commit,
   table_commit_decoy,
@@ -11,7 +10,6 @@ import {
 
 
 export const retrieve_query_result = async (query_id) => {
-
   //{col_2_1:456field,col_2_2:789field,col_2_3:false}
   /*
   await table_commit_row(

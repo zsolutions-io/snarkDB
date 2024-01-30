@@ -16,7 +16,11 @@ Update it with your own Aleo private key.
 ```bash
 snarkdb execute "\
 CREATE TABLE first_table \
-  (column1 INT, column2 BOOLEAN)
+(
+    col_2_1 INT,
+    col_2_2 INT,
+    col_2_3 BOOLEAN
+)
 "
 ```
 

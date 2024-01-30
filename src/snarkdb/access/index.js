@@ -6,11 +6,11 @@ import {
 import { random_from_type } from 'aleo/index.js';
 import fs from 'fs.promises';
 
-import { get_table_definitions_dir } from "snarkdb/db/index.js";
+import { get_public_table_dir } from "snarkdb/db/index.js";
 import { save_object } from 'utils/fs.js';
 
 
-export const update_access = async (tablename, access) => {
+export const set_access = async (tablename, access) => {
   access = (access === "public" || access === "") ?
     "aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc" :
     access;
@@ -18,13 +18,13 @@ export const update_access = async (tablename, access) => {
   const addresses = access.map(
     (address) => Address.from_string(address)
   );
-  await update_access_with_addresses(tablename, addresses);
+  await set_access_with_addresses(tablename, addresses);
 };
 
 
-const update_access_with_addresses = async (tablename, addresses) => {
+const set_access_with_addresses = async (tablename, addresses) => {
   const context_address = global.context.account.address();
-  const table_definitions_dir = get_table_definitions_dir(
+  const table_definitions_dir = get_public_table_dir(
     context_address.to_string(), tablename
   );
   const description_path = `${table_definitions_dir}/description.json`;
@@ -55,16 +55,13 @@ const update_access_with_addresses = async (tablename, addresses) => {
 
   await save_object(table_definitions_dir, "encrypted_description", enc_definition);
   await save_object(table_definitions_dir, "description", definition);
-
-  global.context.account = new Account({ privateKey: "APrivateKey1zkp8Jrj5HejD2UW92a2C9AZLwR9Q39vazarw92SxbwRtF4p" })
-  await read_access(tablename, context_address.to_string());
 }
 
 
 
 export const read_access = async (tablename, database) => {
   const context_view_key = global.context.account.viewKey();
-  const table_definitions_dir = get_table_definitions_dir(
+  const table_definitions_dir = get_public_table_dir(
     database, tablename
   );
   const enc_description_path = `${table_definitions_dir}/encrypted_description.json`;
@@ -89,8 +86,10 @@ export const read_access = async (tablename, database) => {
     throw new Error("You don't have access to this table.");
   }
   const view_key = ViewKey.from_scalar(view_key_scalar);
-
-  const dec_schema = view_key.decrypt_ciphertext(schema.ciphertext, Address.from_string(database).to_group());
+  const dec_schema = view_key.decrypt_ciphertext(
+    schema.ciphertext,
+    Address.from_string(database).to_group()
+  );
 
   return dec_schema;
 }
