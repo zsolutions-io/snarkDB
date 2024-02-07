@@ -21,5 +21,3 @@ export default {
   pattern,
   entrypoint
 }
-
-

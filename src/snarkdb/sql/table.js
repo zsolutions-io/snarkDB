@@ -54,7 +54,6 @@ export class Table {
     const row = query_to_insert_row(this.columns, query);
     const args = [row_to_record_string(row)];
 
-    console.log("args", args)
     await this.program.call(this.create_function.name, args);;
   }
 
@@ -63,7 +62,7 @@ export class Table {
     const description = {
       schema,
       settings: {
-        max_row_amount: Number(process.env.MAX_ROW_AMOUNT),
+        capacity: Number(process.env.DEFAULT_TABLE_CAPACITY),
         version: Number(process.env.VERSION),
       },
       view_key: random_from_type("scalar"),

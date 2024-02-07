@@ -22,12 +22,11 @@ export const retrieve_query_result = async (query_id) => {
     "table2",
   );
   */
-
   const table2 = {
     name: "table2",
     database: "aleo1386l43hhduwmh7jdpnsfg7twwnkhzmjfp2zg89qadqq5al2d8sgsw96584",
     settings: {
-      max_row_amount: 15,
+      capacity: 15,
       push_period: 10 * 60 * 1000, // 10 minutes
     },
   };

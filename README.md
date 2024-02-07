@@ -6,6 +6,30 @@
 npm install
 ```
 
+## Data sources
+
+Supported RDBMS are:
+
+- mysql
+- postgres
+- cockroachdb
+- sap
+- spanner
+- mariadb
+- sqlite
+- cordova
+- react-native
+- nativescript
+- sqljs
+- oracle
+- mssql
+- mongodb
+- aurora-mysql
+- aurora-postgres
+- expo
+- better-sqlite3
+- capacitor
+
 ## Environment variables
 
 Duplicate `.env.local.example` file and rename it to `.env.local`.
