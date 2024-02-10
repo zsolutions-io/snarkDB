@@ -17,6 +17,7 @@ import {
 import fs from 'fs/promises';
 
 import command_info from './command_info.js';
+import { get_help_message } from './help.js';
 import commands from './commands/index.js';
 
 import dotenv from 'dotenv';
@@ -79,30 +80,6 @@ const load_context = async (argv) => {
 }
 
 
-const get_help_message = (
-  actions
-) => {
-  const intro = (
-    `${usage_description}\n  ${program_name} ${args_pattern}\n\n${"Description:".yellow.bold}\n  ${description}`
-  );
-  const commands_help = actions.map(
-    ({ name, description }) => (
-      `  ${name.bold.green}\t${description}`
-    )
-  ).join('\n');
-
-  const options_help = optional_args.map(
-    ({ name, description, type }) => (
-      `  ${("--" + name)}\t${description}`
-    )
-  ).join('\n');
-
-  return (
-    `${intro}\n\n${"Commands:".yellow.bold}\n`
-    + `${commands_help}\n\n${"Options:".yellow.bold}\n${options_help}`
-  );
-};
-
 const actions = Object.values(commands);
 const {
   program_name,
@@ -112,7 +89,7 @@ const {
   optional_args
 } = command_info;
 
-const help_message = get_help_message(actions);
+const help_message = get_help_message(actions, args_pattern, description);
 const action_names = Object.values(actions).map((({ name }) => name));
 
 
@@ -121,7 +98,6 @@ const default_entrypoint = (argv) => {
     return console.log(help_message);
   }
 };
-
 
 
 let result = await yargs(process.argv.slice(2))
@@ -137,8 +113,10 @@ for (const command of Object.values(commands)) {
     await load_context(argv);
     try {
       await command.entrypoint(argv);
+      process.exit(0);
     } catch (e) {
       display_error(e);
+      process.exit(1);
     }
   };
   const opts = optional_args.concat(
@@ -156,6 +134,7 @@ for (const command of Object.values(commands)) {
     )
   )
   const help = `${"Description:".yellow.bold}\n  ${command.description}`;
+
   result = await result.command({
     command: command.pattern,
     describe: help,
@@ -164,6 +143,5 @@ for (const command of Object.values(commands)) {
   });
 }
 
+
 export const argv = await result.argv;
-
-

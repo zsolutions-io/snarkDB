@@ -1,9 +1,11 @@
-import execute from './execute.js';
-import result from './result.js';
-import set_access from './set_access.js';
+import datasources from './datasources.js';
+import tables from './tables.js';
+import requests from './requests.js';
+import start from './start.js';
 
 export default {
-  execute,
-  result,
-  set_access
+  datasources,
+  tables,
+  requests,
+  start,
 }

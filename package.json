@@ -20,6 +20,7 @@
   "dependencies": {
     "@aleohq/sdk": "^0.6.9",
     "@aleohq/wasm": "^0.6.9",
+    "babel-plugin-import-directory": "^1.1.0",
     "bech32": "^2.0.0",
     "bigint-crypto-utils": "^2.5.3",
     "colors": "^1.4.0",
@@ -28,6 +29,7 @@
     "fs.promises": "^0.1.2",
     "fs.promises.exists": "^1.1.4",
     "jsdoc": "^4.0.2",
+    "mysql": "^2.18.1",
     "node-fetch": "^3.3.2",
     "node-sql-parser": "^4.11.0",
     "patch-package": "^8.0.0",

@@ -3,8 +3,8 @@ import colors from 'colors';
 export default {
   program_name: "snarkdb".green.bold,
   usage_description: "Usage:".yellow.bold,
-  args_pattern: "[OPTIONS] <COMMAND>",
-  description: "CLI for interacting with SnarkDB, a Zero Knowledge Relational Database Management System.",
+  args_pattern: "<COMMAND> [OPTIONS]",
+  description: "snarkDB is a tool for exposing your RDBMS to zero knowledge SQL queries.",
   optional_args: [
     {
       name: "privateKey",

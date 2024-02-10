@@ -1,7 +1,7 @@
 import { zip, diff, get_duplicates, inter } from "utils/index.js";
 import { Program, is_valid_address } from "aleo/index.js";
 import { empty_struct_data } from "snarkdb/db/commit.js";
-import { get_private_table_dir } from "snarkdb/db/index.js";
+import { get_table_dir } from "snarkdb/db/index.js";
 import { save_object } from "utils/index.js";
 import { read_access } from "snarkdb/access/index.js";
 
@@ -67,7 +67,7 @@ export class Table {
       },
       view_key: random_from_type("scalar"),
     };
-    const table_definitions_dir = get_private_table_dir(this.database, this.name);
+    const table_definitions_dir = get_table_dir(this.database, this.name);
     await save_object(table_definitions_dir, "description", description, true);
     return await this.program.save();
   }

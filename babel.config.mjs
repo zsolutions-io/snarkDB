@@ -7,12 +7,13 @@ export default {
   presets: [
     ['@babel/preset-env', {
       targets: {
-        node: 'current'  // or specific version e.g., "14"
+        node: 'current'
       },
-      modules: false  // This preserves ES modules
+      modules: false
     }]
   ],
   plugins: [
+    'import-directory',
     [
       'module-resolver',
       {

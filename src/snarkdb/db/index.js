@@ -1,11 +1,16 @@
 import { resources_dir } from "utils/index.js";
 
 export const resources_programs_dir = `${resources_dir}/programs`;
-export const private_resources_dir = `${resources_dir}/private`;
 export const public_resources_dir = `${resources_dir}/public`;
+export const datasources_dir = `${resources_dir}/datasources`;
+export const tables_dir = `${resources_dir}/private`;
 
 
-export const get_private_table_dir = (database, table_name) => {
+export const get_datasource_dir = (identifier) => {
+  return `${datasources_dir}/${identifier}`;
+}
+
+export const get_table_dir = (database, table_name) => {
   return `${private_resources_dir}/tables/${database}/${table_name}`;
 }
 
@@ -14,11 +19,11 @@ export const get_public_table_dir = (database, table_name) => {
 }
 
 export const get_table_current_dir = (database, table_name) => {
-  return `${get_private_table_dir(database, table_name)}/current`;
+  return `${get_table_dir(database, table_name)}/current`;
 }
 
 export const get_table_private_commits_dir = (database, table_name, commit) => {
-  return `${get_private_table_dir(database, table_name)}/commits/${commit}`;
+  return `${get_table_dir(database, table_name)}/commits/${commit}`;
 }
 
 export const get_table_public_commits_dir = (database, table_name, commit) => {
