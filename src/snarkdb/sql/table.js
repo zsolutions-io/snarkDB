@@ -1,18 +1,29 @@
 import { zip, diff, get_duplicates, inter } from "utils/index.js";
 import { Program, is_valid_address } from "aleo/index.js";
 import { empty_struct_data } from "snarkdb/db/commit.js";
-import { get_table_dir } from "snarkdb/db/index.js";
+import { get_table_dir, get_public_table_dir } from "snarkdb/db/index.js";
 import { save_object } from "utils/index.js";
-import { read_access } from "snarkdb/access/index.js";
-
 import { random_from_type } from 'aleo/types/index.js';
+
+import {
+  encrypt_for_anyof_addresses_to_file,
+  decrypt_file_from_anyof_address
+} from 'aleo/encryption.js';
+
+import fs from "fs/promises";
+
+import {
+  Address,
+} from '@aleohq/sdk';
 
 
 export class Table {
-  constructor(database_name, table_name, program, as = null) {
+  constructor(database_name, table_name, program, allowed_adresses, capacity, as = null,) {
     this.program = program;
     this.database = database_name;
     this.name = table_name;
+    this.capacity = capacity;
+    this.allowed_adresses = allowed_adresses;
     this.ref = as || table_name;
   }
 
@@ -32,11 +43,19 @@ export class Table {
     for (const struct of this.program.structs) {
       if (struct.name === description_struct_name(this.name)) {
         return struct.fields.map(
+          /*
           ({ name, type }) => ({
             attribute: name,
             aleo_type: type,
             sql_type: null,
             ast_type: null,
+          })
+          */
+          ({ name, type }) => ({
+            snarkdb: {
+              name,
+              type
+            }
           })
         );
       }
@@ -46,6 +65,7 @@ export class Table {
       + `was not found in program source code.`
     );
   }
+
 
   async insert(query) {
     if (this.is_view)
@@ -57,18 +77,28 @@ export class Table {
     await this.program.call(this.create_function.name, args);;
   }
 
-  async save() {
+  async save(source, columns, overwrite) {
+    source = source || undefined;
+    columns = columns || undefined;
     const schema = empty_struct_data(this.description_struct);
     const description = {
-      schema,
       settings: {
-        capacity: Number(process.env.DEFAULT_TABLE_CAPACITY),
-        version: Number(process.env.VERSION),
+        capacity: this.capacity,
+        version: package_version_as_integer(global.context.package_version),
       },
+      source,
+      columns,
+      allowed_addresses: this.allowed_adresses.map(
+        (address) => address.to_string()
+      ),
       view_key: random_from_type("scalar"),
     };
     const table_definitions_dir = get_table_dir(this.database, this.name);
-    await save_object(table_definitions_dir, "description", description, true);
+    await save_object(table_definitions_dir, definition_filename, description, !overwrite);
+
+    await save_encrypted_schema(
+      this.name, this.allowed_adresses, description.view_key, schema
+    )
     return await this.program.save();
   }
 }
@@ -92,13 +122,18 @@ Table.from_parsed_table = async function ({
 
 
 Table.from_columns = function (
-  database_name, table_name, columns, is_view = false
+  database_name, table_name, columns, visibility, capacity
 ) {
+  const is_view = false;
   const program = table_from_columns(table_name, columns, is_view);
+
+  const allowed_adresses = table_visibility_to_addresses(visibility);
   return new Table(
     database_name,
     table_name,
     program,
+    allowed_adresses,
+    capacity,
   );
 };
 
@@ -143,6 +178,8 @@ export const delete_function_name = (table_name) => (
   `delete_${table_name}`
 );
 
+const encrypted_schema_filename = "encrypted_schema";
+const definition_filename = "definition";
 
 const is_program_view = (program) => {
   return inter(
@@ -495,8 +532,8 @@ export const get_fields_from_parsed_column = (column, all_fields) => {
 
 const column_to_attribute = (column) => {
   return {
-    name: column.attribute,
-    type: column.aleo_type,
+    name: column.snarkdb.name,
+    type: column.snarkdb.type,
   };
 }
 
@@ -548,4 +585,64 @@ const throw_incompatible_row_columns = (row, columns) => {
   const extras = ([...diff(gotten_colnames, expected_colnames)]).join(", ");
   if (extras.length > 0)
     throw Error(`Invalid insert query. Extra columns: (${extras})`);
+}
+
+
+export const table_visibility_to_addresses = (visibility) => {
+  visibility = (visibility === "public" || visibility === "") ?
+    "aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc" :
+    visibility;
+  visibility = visibility.split(",");
+  const addresses = visibility.map(
+    (address) => Address.from_string(address)
+  );
+  return addresses;
+};
+
+
+function package_version_as_integer(version) {
+  const [major, minor, patch] = version.split(".").map((n) => parseInt(n));
+  return major * 10000 + minor * 100 + patch;
+}
+
+
+const save_encrypted_schema = async (
+  tablename, addresses, view_key, schema
+) => {
+  const context_address = global.context.account.address();
+  const table_definitions_dir = get_public_table_dir(
+    context_address.to_string(), tablename
+  );
+
+  await encrypt_for_anyof_addresses_to_file(
+    context_address,
+    schema,
+    table_definitions_dir,
+    encrypted_schema_filename,
+    addresses,
+    view_key,
+  )
+}
+
+
+
+const read_access = async (tablename, database) => {
+  const context_view_key = global.context.account.viewKey();
+  const table_definitions_dir = get_public_table_dir(
+    database, tablename
+  );
+  const enc_description_path = `${table_definitions_dir}/${encrypted_schema_filename}.json`;
+  const schema = await decrypt_file_from_anyof_address(
+    context_view_key,
+    enc_description_path
+  );
+  return schema;
+}
+
+
+export async function get_table_definition(database, tablename) {
+  const table_definitions_dir = get_table_dir(database, tablename);
+  const definition_path = `${table_definitions_dir}/${definition_filename}.json`;
+  const definition = JSON.parse(await fs.readFile(definition_path));
+  return definition;
 }

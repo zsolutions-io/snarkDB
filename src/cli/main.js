@@ -9,11 +9,10 @@ import {
   AleoNetworkClient,
   NetworkRecordProvider,
   ProgramManager,
+  initThreadPool
 } from "@aleohq/sdk";
 
-import {
-  initThreadPool,
-} from '@aleohq/wasm';
+
 import fs from 'fs/promises';
 
 import command_info from './command_info.js';
@@ -28,8 +27,8 @@ import { root_path } from 'utils/index.js';
 
 import colors from 'colors';
 
-dotenv.config();
 dotenv.config({ path: path.resolve(root_path, '.env.local') });
+dotenv.config({ path: path.resolve(root_path, '.env') });
 
 
 const load_context = async (argv) => {
@@ -49,12 +48,12 @@ const load_context = async (argv) => {
         : process.env.VERBOSITY ?
           Number(process.env.VERBOSITY)
           : 1;
-
+    const package_version = await load_package_version();
     const keyProvider = new AleoKeyProvider();
     keyProvider.useCache(true);
     const networkClient = new AleoNetworkClient(endpoint);
     const recordProvider = new NetworkRecordProvider(account, networkClient);
-    await initThreadPool();
+    //await initThreadPool();
     const programManager = new ProgramManager(endpoint, keyProvider, recordProvider);
     programManager.setAccount(account);
     programManager.networkClient.fs = fs;
@@ -62,6 +61,7 @@ const load_context = async (argv) => {
 
     context = {
       ...context,
+      package_version,
       account,
       verbosity,
       keyProvider,
@@ -77,6 +77,14 @@ const load_context = async (argv) => {
     throw new Error("No private key provided. Use --privateKey or set PRIVATE_KEY env variable.")
 
   global.context = context;
+}
+
+async function load_package_version() {
+  const package_path = path.resolve(root_path, 'package.json');
+  const package_json = JSON.parse(
+    await fs.readFile(package_path, 'utf-8')
+  );
+  return package_json.version;
 }
 
 

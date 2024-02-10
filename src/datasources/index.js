@@ -10,7 +10,8 @@ const config_file_name = 'config';
 
 export async function get_datasource(identifier) {
   const config = await get_datasource_config(identifier);
-  const datasource = new DataSource(config);
+  const synchronize = config.synchronize != null ? config.synchronize : true;
+  const datasource = new DataSource({ ...config, synchronize });
   await datasource.initialize();
   return datasource;
 }
@@ -36,13 +37,12 @@ export async function list_datasources() {
     const config = await get_datasource_config(identifier);
 
     for (const [key, value] of Object.entries(config)) {
-      console.log(`  + ${key}: ${value}`);
+      console.log(`  ・ ${key}: ${value}`);
     }
   }
 }
 
 
-// snarkdb datasources add --identifier test --datasourceJson '{"type": "mysql","host": "127.0.0.1","port": 3306,"username": "root","password": "my-secret-pw", "database": "testdb"}' --overwrite
 export async function add_datasource(identifier, datasourceJson, overwrite) {
   throw_invalid_identifier(identifier);
   const datasource_settings = JSON.parse(datasourceJson);

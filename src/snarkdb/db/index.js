@@ -3,7 +3,7 @@ import { resources_dir } from "utils/index.js";
 export const resources_programs_dir = `${resources_dir}/programs`;
 export const public_resources_dir = `${resources_dir}/public`;
 export const datasources_dir = `${resources_dir}/datasources`;
-export const tables_dir = `${resources_dir}/private`;
+export const tables_dir = `${resources_dir}/tables`;
 
 
 export const get_datasource_dir = (identifier) => {
@@ -11,7 +11,7 @@ export const get_datasource_dir = (identifier) => {
 }
 
 export const get_table_dir = (database, table_name) => {
-  return `${private_resources_dir}/tables/${database}/${table_name}`;
+  return `${tables_dir}/${database}/${table_name}`;
 }
 
 export const get_public_table_dir = (database, table_name) => {

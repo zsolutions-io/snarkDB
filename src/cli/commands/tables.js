@@ -30,6 +30,21 @@ const expose_args = [
     description: "Who can see the table name and column names and types: 'public' or a list of comma separated addresses as 'aleo1l...hk,aleo1p...dd'.",
     required: true,
   },
+  {
+    name: "capacity",
+    description: "Maximum number of rows in the table, integer.",
+    required: true,
+  },
+  {
+    name: "columnsMapping",
+    description: "Optional mapping to expose only a subset of the columns optionally with different exposed names. Comma separated list of column names, colon new name : 'column1,column2:col2,column3:col3'.",
+    required: false,
+  },
+  {
+    name: "overwrite",
+    description: "Overwrite an existing table.",
+    required: false,
+  },
 ];
 const expose_pattern = `${name} ${expose_name} [OPTIONS]`;
 const expose_description = `Expose a table.`;
@@ -64,16 +79,25 @@ const entrypoint = async (args) => {
   if (subcommand === list_name) {
     return await list_tables();
   } else if (subcommand === expose_name) {
-    const { datasource, sourceTable, destinationTable, visiblity } = args;
+    const {
+      datasource,
+      sourceTable,
+      destinationTable,
+      visibility,
+      capacity,
+      columnsMapping,
+      overwrite,
+    } = args;
     if (
       datasource == null
       || sourceTable == null
       || destinationTable == null
-      || visiblity == null
+      || visibility == null
+      || capacity == null
     )
       return console.log(expose_help);
     return await expose_table(
-      datasource, sourceTable, destinationTable, visiblity
+      datasource, sourceTable, destinationTable, visibility, capacity, columnsMapping, overwrite
     );
   }
   console.log(get_help_message(actions, _pattern, description, null));

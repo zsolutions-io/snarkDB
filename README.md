@@ -39,7 +39,7 @@ Update it with your own Aleo private key.
 
 ```bash
 snarkdb execute "\
-CREATE TABLE first_table \
+CREATE TABLE table2 \
 (
     col_2_1 INT,
     col_2_2 INT,
@@ -52,11 +52,12 @@ CREATE TABLE first_table \
 
 ```bash
 node . execute "\
-INSERT INTO first_table \
-  (column1, column2) \
+INSERT INTO table2 \
+  (col_2_1, col_2_2, col_2_3) \
 VALUES \
   (\
     1,\
+    123,\
     true
   )\
 "

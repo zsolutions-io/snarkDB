@@ -31,7 +31,7 @@ export const save_file = async (
   const obj_data = content;
   const exists = await fsExists(obj_path);
   if (throw_if_exists && exists) {
-    throw new Error(`Error: file ${obj_path} already exists.`);
+    throw new Error(`File ${obj_path} already exists.`);
   }
   if (!exists) {
     await fs.mkdir(dir_path, { recursive: true });

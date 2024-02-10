@@ -1,13 +1,17 @@
 import { get_help_message } from "../help.js"
-
+import {
+  execute_query,
+  retrieve_query_result
+} from "snarkdb/queries/index.js";
 
 const name = "requests";
+
 
 const execute_name = "execute";
 const execute_args = [
   {
-    name: "request",
-    description: "zkSQL request to execute.",
+    name: "query",
+    description: "zkSQL query to execute.",
     required: true,
   },
 ];
@@ -19,7 +23,7 @@ const result_name = "result";
 const result_args = [
   {
     name: "identifier",
-    description: "Identifier of the request to retrieve.",
+    description: "Identifier of the query to retrieve.",
     required: true,
   },
 ];
@@ -33,7 +37,7 @@ const list_description = `List all zkSQL requests related to your address.`;
 const list_help = get_help_message(null, list_pattern, list_description, null);
 
 
-const description = `Manage your zkSQL requests.`;
+const description = `Initiate outgoing and process incoming zkSQL queries.`;
 const _pattern = `${name} <SUBCOMMAND> [OPTIONS]`;
 const pattern = `${name} [SUBCOMMAND] [OPTIONS]`;
 

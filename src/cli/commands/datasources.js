@@ -69,6 +69,8 @@ const actions = [
   },
 ];
 
+// snarkdb datasources add --identifier test --datasourceJson '{"type": "mysql","host": "127.0.0.1","port": 3306,"username": "root","password": "my-secret-pw", "database": "testdb"}' --overwrite
+
 
 const entrypoint = async (args) => {
   const { SUBCOMMAND: subcommand } = args;
