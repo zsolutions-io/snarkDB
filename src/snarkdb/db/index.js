@@ -55,3 +55,4 @@ export const get_program_dir_path = (program_id) => {
 }
 
 export * from "./commit.js";
+export * from "./sync.js";

@@ -36,6 +36,11 @@ const expose_args = [
     required: true,
   },
   {
+    name: "syncPeriod",
+    description: `Amount of time in seconds between each syncronisation of a table with datasource. Default is ${process.env.DEFAULT_SYNC_PERIOD} seconds.`,
+    required: false,
+  },
+  {
     name: "columnsMapping",
     description: "Optional mapping to expose only a subset of the columns optionally with different exposed names. Comma separated list of column names, colon new name : 'column1,column2:col2,column3:col3'.",
     required: false,
@@ -85,6 +90,7 @@ const entrypoint = async (args) => {
       destinationTable,
       visibility,
       capacity,
+      syncPeriod,
       columnsMapping,
       overwrite,
     } = args;
@@ -97,7 +103,7 @@ const entrypoint = async (args) => {
     )
       return console.log(expose_help);
     return await expose_table(
-      datasource, sourceTable, destinationTable, visibility, capacity, columnsMapping, overwrite
+      datasource, sourceTable, destinationTable, visibility, capacity, syncPeriod, columnsMapping, overwrite
     );
   }
   console.log(get_help_message(actions, _pattern, description, null));

@@ -1,22 +1,12 @@
 import { get_datasource } from "datasources/index.js";
-import { Table, get_table_definition } from 'snarkdb/sql/table.js';
+import { Table, get_table_definition, table_visibility_to_addresses } from 'snarkdb/sql/table.js';
 import { tables_dir } from "snarkdb/db/index.js";
 import fs from "fs/promises";
-
-const config_file_name = 'config';
-
-
-export async function get_table(tablename) {
-  const database = global.context.account.address();
-  const config = await get_table_config(database, tablename);
-  return config;
-}
+import { Address } from "@aleohq/sdk";
 
 
 export async function list_tables() {
-  const database = global.context.account.address().to_string();
-  const this_tables_dir = `${tables_dir}/${database}`;
-  const tables = await fs.readdir(this_tables_dir);
+  const tables = await get_address_tables_names(global.context.account.address().to_string());
   if (tables.length === 0) {
     return console.log('No tables found.');
   }
@@ -64,23 +54,27 @@ export async function expose_table(
   destination_table,
   visiblity,
   capacity,
+  sync_period,
   columns_mapping,
   overwrite
 ) {
   capacity = parseInt(capacity);
+  sync_period = sync_period ? parseInt(sync_period) : parseInt(process.env.DEFAULT_SYNC_PERIOD);
   if (isNaN(capacity) || capacity < 0) {
     throw new Error(`Capacity should be an integer: '${capacity}'.`);
   }
   const datasource = await get_datasource(datasource_id);
   const columns = await getTableColumns(datasource, source_table, columns_mapping);
   const database = global.context.account.address().to_string()
-
+  const allowed_addresses = table_visibility_to_addresses(visiblity);
   const table = Table.from_columns(
     database,
     destination_table,
     columns,
-    visiblity,
-    capacity
+    allowed_addresses,
+    capacity,
+    sync_period,
+    datasource
   );
   const source = {
     datasource: datasource_id,
@@ -182,5 +176,49 @@ function typeorm_to_aleo_type(typeorm_type) {
     throw new Error(`Unsupported type: '${typeorm_type}'.`);
   }
   return aleo_type;
+}
+
+
+
+export async function get_address_tables_names(address) {
+  const this_tables_dir = `${tables_dir}/${address}`;
+  const tables = await fs.readdir(this_tables_dir);
+  return tables;
+}
+
+
+export async function get_address_table_definition(database, tablename) {
+  const definition = await get_table_definition(database, tablename);
+  return definition;
+}
+
+
+export async function get_address_table(address, tablename) {
+  const definition = await get_address_table_definition(address, tablename);
+  const allowed_addresses = definition.allowed_addresses.map(
+    (address) => Address.from_string(address)
+  );
+  const datasource = await get_datasource(definition.source.datasource);
+  return Table.from_columns(
+    address,
+    tablename,
+    definition.columns,
+    allowed_addresses,
+    definition.settings.capacity,
+    definition.settings.sync_period,
+    datasource
+  );
+}
+
+
+export async function get_address_tables(address) {
+  const table_names = await get_address_tables_names(address);
+  const tables = [];
+  for (const table_name of table_names) {
+    tables.push(
+      await get_address_table(address, table_name)
+    );
+  }
+  return tables;
 }
 

@@ -18,12 +18,14 @@ import {
 
 
 export class Table {
-  constructor(database_name, table_name, program, allowed_adresses, capacity, as = null,) {
+  constructor(database_name, table_name, program, allowed_adresses, capacity, sync_period, datasource, as = null,) {
     this.program = program;
     this.database = database_name;
     this.name = table_name;
     this.capacity = capacity;
+    this.sync_period = sync_period;
     this.allowed_adresses = allowed_adresses;
+    this.datasource = datasource;
     this.ref = as || table_name;
   }
 
@@ -84,6 +86,7 @@ export class Table {
     const description = {
       settings: {
         capacity: this.capacity,
+        sync_period: this.sync_period,
         version: package_version_as_integer(global.context.package_version),
       },
       source,
@@ -100,6 +103,11 @@ export class Table {
       this.name, this.allowed_adresses, description.view_key, schema
     )
     return await this.program.save();
+  }
+
+  async sync() {
+    const queryRunner = dataSource.createQueryRunner();
+    const table = await queryRunner.getTable(tableName);
   }
 }
 
@@ -122,18 +130,18 @@ Table.from_parsed_table = async function ({
 
 
 Table.from_columns = function (
-  database_name, table_name, columns, visibility, capacity
+  database_name, table_name, columns, allowed_adresses, capacity, sync_period, datasource
 ) {
   const is_view = false;
   const program = table_from_columns(table_name, columns, is_view);
-
-  const allowed_adresses = table_visibility_to_addresses(visibility);
   return new Table(
     database_name,
     table_name,
     program,
     allowed_adresses,
     capacity,
+    sync_period,
+    datasource
   );
 };
 

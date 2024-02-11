@@ -6,7 +6,7 @@
 npm install
 ```
 
-## Data sources
+## Datasources
 
 Supported RDBMS are:
 
@@ -29,6 +29,8 @@ Supported RDBMS are:
 - expo
 - better-sqlite3
 - capacitor
+
+For more information, see [typeorm datasources documentation](https://github.com/typeorm/typeorm/blob/master/docs/data-source-options.md#what-is-datasourceoptions).
 
 ## Environment variables
 
