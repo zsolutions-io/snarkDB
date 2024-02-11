@@ -6,7 +6,7 @@ import {
   load_cached_program_source,
 } from 'aleo/proof.js';
 
-
+import { get_table_commit_rows_dir, get_table_commit_dir } from 'snarkdb/db/index.js';
 
 import { Table, description_struct_name } from 'snarkdb/sql/table.js';
 
@@ -24,12 +24,24 @@ import crypto from 'crypto';
 const commit_data_filename = "data";
 
 
+
+export const save_commit_data_from_id = async (database, table, commit_id, commit_data) => {
+  const commit_dir = get_table_commit_dir(database, table, commit_id);
+  await save_object(commit_dir, "data", commit_data);
+}
+
 export const get_commit_data_from_id = async (database, table, commit_id) => {
-  const commit_dir = get_table_commit_dir(database, table);
+  const commit_dir = get_table_commit_dir(database, table, commit_id);
   const commit_path = `${commit_dir}/${commit_data_filename}.json`;
   const commit_data = await fs.readFile(commit_path, 'utf8');
   return JSON.parse(commit_data);
 }
+
+export const save_commit_row = async (database, table, commit_id, row_id, row) => {
+  const commit_dir = get_table_commit_rows_dir(database, table, commit_id);
+  await save_object(commit_dir, row_id, row);
+}
+
 
 export const table_insert_row = async (
   table_name,

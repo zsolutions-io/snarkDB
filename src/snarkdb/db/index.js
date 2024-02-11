@@ -26,6 +26,14 @@ export const get_table_commit_dir = (database, table_name, commit) => {
   return `${get_table_commits_dir(database, table_name)}/${commit}`;
 }
 
+export const get_table_commit_rows_dir = (database, table_name, commit) => {
+  return `${get_table_commit_dir(database, table_name, commit)}/rows`;
+}
+
+export const get_table_commit_row_dir = (database, table_name, commit, row) => {
+  return `${get_table_commit_rows_dir(database, table_name, commit)}/${row}`;
+}
+
 export const get_table_public_commits_dir = (database, table_name, commit) => {
   return `${get_public_table_dir(database, table_name)}/commits/${commit}`;
 }

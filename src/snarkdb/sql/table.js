@@ -1,11 +1,11 @@
 import { zip, diff, get_duplicates, inter } from "utils/index.js";
 import { Program, is_valid_address } from "aleo/index.js";
-import { empty_struct_data, get_commit_data_from_id } from "snarkdb/db/commit.js";
+import { empty_struct_data, get_commit_data_from_id, save_commit_row, save_commit_data_from_id } from "snarkdb/db/commit.js";
 import { get_table_dir, get_public_table_dir } from "snarkdb/db/index.js";
 import { save_object } from "utils/index.js";
 import { get_datasource } from "datasources/index.js";
-import { get_table_commits_dir } from "snarkdb/db/index.js";
-
+import { get_table_commits_dir, } from "snarkdb/db/index.js";
+import crypto from "crypto";
 
 import {
   encrypt_for_anyof_addresses_to_file,
@@ -133,21 +133,27 @@ export class Table {
   }
 
   async commit() {
-    const rows_path = "";
-    await this.save_rows(rows_path);
+    const commit_temp_id = crypto.randomUUID().replace(/-/g, "");
+    await this.save_rows(commit_temp_id);
+
+    const commit_data = {
+      timestamp: Date.now(),
+    }
+
+    await save_commit_data_from_id(this.database, this.name, commit_temp_id, commit_data)
   }
 
-  async save_rows(rows_path) {
+  async save_rows(commit_id) {
     const queryRunner = this.source.datasource.createQueryRunner();
     await queryRunner.connect();
-    if (!/^[a-zA-Z0-9_]+$/.test(this.name)) {
+    if (!/^[a-zA-Z0-9_]+$/.test(this.source.name)) {
       throw new Error("Invalid table name");
     }
-    const sqlQuery = `SELECT * FROM ${this.name}`;
+    const sqlQuery = `SELECT * FROM ${this.source.name}`;
     const stream = await queryRunner.stream(sqlQuery);
     const row_adapter = columns_to_row_adapter(this.definition_columns);
     stream.on("data", (row) => {
-      this.save_row(rows_path, row_adapter(row));
+      this.save_row(commit_id, row_adapter(row));
     });
     await new Promise((resolve, reject) => {
       stream.on("end", () => {
@@ -161,8 +167,13 @@ export class Table {
     await queryRunner.release();
   }
 
-  async save_row(rows_path, row) {
-    console.log(row);
+  async save_row(commit_id, row) {
+    const row_id = crypto.randomUUID().replace(/-/g, "");
+    const row_data = {
+      row,
+
+    }
+    await save_commit_row(this.database, this.name, commit_id, row_id, row_data);
   }
 
 
