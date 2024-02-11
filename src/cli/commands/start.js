@@ -1,7 +1,7 @@
 import { continuous_sync } from "snarkdb/db/index.js";
 
 const name = "start";
-const description = "Start the continuous syncronisation job between your exposed tables and their datasource.";
+const description = "Start the continuous syncronisation job of your exposed tables with their datasource.";
 const pattern = `${name} [OPTIONS]`;
 
 const entrypoint = async ({ query }) => {

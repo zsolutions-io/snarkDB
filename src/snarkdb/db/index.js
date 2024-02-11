@@ -18,12 +18,12 @@ export const get_public_table_dir = (database, table_name) => {
   return `${public_resources_dir}/tables/${database}/${table_name}`;
 }
 
-export const get_table_current_dir = (database, table_name) => {
-  return `${get_table_dir(database, table_name)}/current`;
+export const get_table_commits_dir = (database, table_name) => {
+  return `${get_table_dir(database, table_name)}/commits`;
 }
 
-export const get_table_private_commits_dir = (database, table_name, commit) => {
-  return `${get_table_dir(database, table_name)}/commits/${commit}`;
+export const get_table_commit_dir = (database, table_name, commit) => {
+  return `${get_table_commits_dir(database, table_name)}/${commit}`;
 }
 
 export const get_table_public_commits_dir = (database, table_name, commit) => {

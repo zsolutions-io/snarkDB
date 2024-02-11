@@ -10,7 +10,6 @@ import {
 
 import { Table, description_struct_name } from 'snarkdb/sql/table.js';
 
-import { get_select_executions_dir, get_table_current_dir } from 'snarkdb/db/index.js';
 
 import fs from 'fs/promises';
 import fsExists from 'fs.promises.exists'
@@ -22,7 +21,15 @@ import shuffle from 'crypto-shuffle';
 import crypto from 'crypto';
 
 
+const commit_data_filename = "data";
 
+
+export const get_commit_data_from_id = async (database, table, commit_id) => {
+  const commit_dir = get_table_commit_dir(database, table);
+  const commit_path = `${commit_dir}/${commit_data_filename}.json`;
+  const commit_data = await fs.readFile(commit_path, 'utf8');
+  return JSON.parse(commit_data);
+}
 
 export const table_insert_row = async (
   table_name,

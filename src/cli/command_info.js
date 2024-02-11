@@ -8,7 +8,7 @@ export default {
   optional_args: [
     {
       name: "privateKey",
-      description: "Aleo private key used for signature.",
+      description: "Aleo private key, used for signing transactions.",
       type: "string",
     },
     {

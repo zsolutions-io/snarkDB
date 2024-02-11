@@ -26,9 +26,11 @@ export const get_help_message = (
   ).join('\n') : null;
   const ml2 = Math.max(...all_optional_args.map(({ name }) => (name?.length || 0)))
   const options_help = all_optional_args.map(
-    ({ name, description, type, required }) => (
-      `  ${("--" + name)}${tabulate(name.length, ml2, 4)}${required ? '[required] ' : ''}${description}`
-    )
+    ({ name, description, type, required }) => {
+      return (
+        `  ${("--" + name).bold.green}${tabulate(name.length, ml2, 4)}${required ? '[required] ' : ''}${description}`
+      )
+    }
   ).join('\n');
 
   const commands_help_str = is_actions ? `${"Commands:".yellow.bold}\n` + `${commands_help}\n\n` : ``;

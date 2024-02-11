@@ -2,7 +2,8 @@ import { get_datasource } from "datasources/index.js";
 import { Table, get_table_definition, table_visibility_to_addresses } from 'snarkdb/sql/table.js';
 import { tables_dir } from "snarkdb/db/index.js";
 import fs from "fs/promises";
-import { Address } from "@aleohq/sdk";
+import { package_version_as_integer, int_version_to_string } from "utils/strings.js";
+import { random_from_type } from 'aleo/types/index.js';
 
 
 export async function list_tables() {
@@ -20,7 +21,7 @@ export async function list_tables() {
         return `${column.typeorm.name}(${column.typeorm.type}): ${column.snarkdb.name}(${column.snarkdb.type.value})`;
       }),
       capacity: config.settings.capacity,
-      version: int_version_to_string(config.settings.version),
+      snarkdb_version: int_version_to_string(config.snarkdb_version),
       visibility: allowed_addresses_to_visibility(config.allowed_addresses),
     }
 
@@ -40,13 +41,6 @@ function allowed_addresses_to_visibility(addresses) {
   return addresses.join(",");
 }
 
-function int_version_to_string(version) {
-  return (
-    Math.floor(version / 10000)
-    + '.' + Math.floor((version % 10000) / 100)
-    + '.' + (version % 100)
-  );
-}
 
 export async function expose_table(
   datasource_id,
@@ -64,23 +58,33 @@ export async function expose_table(
     throw new Error(`Capacity should be an integer: '${capacity}'.`);
   }
   const datasource = await get_datasource(datasource_id);
-  const columns = await getTableColumns(datasource, source_table, columns_mapping);
-  const database = global.context.account.address().to_string()
-  const allowed_addresses = table_visibility_to_addresses(visiblity);
-  const table = Table.from_columns(
-    database,
-    destination_table,
-    columns,
-    allowed_addresses,
-    capacity,
-    sync_period,
-    datasource
-  );
   const source = {
     datasource: datasource_id,
     name: source_table,
   }
-  await table.save(source, columns, overwrite);
+  const columns = await getTableColumns(datasource, source_table, columns_mapping);
+  const database = global.context.account.address().to_string()
+  const allowed_addresses = table_visibility_to_addresses(visiblity);
+
+  const definition = {
+    settings: {
+      capacity,
+      sync_period,
+    },
+    snarkdb_version: package_version_as_integer(global.context.package_version),
+    source,
+    columns,
+    allowed_addresses,
+    view_key: random_from_type("scalar"),
+  };
+
+  const table = await Table.from_definition(
+    database,
+    destination_table,
+    definition
+  );
+  await table.save(overwrite);
+  await table.close();
 }
 
 
@@ -195,18 +199,10 @@ export async function get_address_table_definition(database, tablename) {
 
 export async function get_address_table(address, tablename) {
   const definition = await get_address_table_definition(address, tablename);
-  const allowed_addresses = definition.allowed_addresses.map(
-    (address) => Address.from_string(address)
-  );
-  const datasource = await get_datasource(definition.source.datasource);
-  return Table.from_columns(
+  return await Table.from_definition(
     address,
     tablename,
-    definition.columns,
-    allowed_addresses,
-    definition.settings.capacity,
-    definition.settings.sync_period,
-    datasource
+    definition
   );
 }
 

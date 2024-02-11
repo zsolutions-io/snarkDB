@@ -1,9 +1,11 @@
 import { zip, diff, get_duplicates, inter } from "utils/index.js";
 import { Program, is_valid_address } from "aleo/index.js";
-import { empty_struct_data } from "snarkdb/db/commit.js";
+import { empty_struct_data, get_commit_data_from_id } from "snarkdb/db/commit.js";
 import { get_table_dir, get_public_table_dir } from "snarkdb/db/index.js";
 import { save_object } from "utils/index.js";
-import { random_from_type } from 'aleo/types/index.js';
+import { get_datasource } from "datasources/index.js";
+import { get_table_commits_dir } from "snarkdb/db/index.js";
+
 
 import {
   encrypt_for_anyof_addresses_to_file,
@@ -18,14 +20,29 @@ import {
 
 
 export class Table {
-  constructor(database_name, table_name, program, allowed_adresses, capacity, sync_period, datasource, as = null,) {
+  constructor(
+    database_name,
+    table_name,
+    program,
+    allowed_adresses,
+    capacity,
+    sync_period,
+    source,
+    definition_columns,
+    view_key,
+    snarkdb_version,
+    as = null,
+  ) {
     this.program = program;
     this.database = database_name;
     this.name = table_name;
     this.capacity = capacity;
     this.sync_period = sync_period;
     this.allowed_adresses = allowed_adresses;
-    this.datasource = datasource;
+    this.source = source;
+    this.definition_columns = definition_columns;
+    this.view_key = view_key;
+    this.snarkdb_version = snarkdb_version;
     this.ref = as || table_name;
   }
 
@@ -42,6 +59,7 @@ export class Table {
   }
 
   get columns() {
+    if (this.definition_columns) return this.definition_columns;
     for (const struct of this.program.structs) {
       if (struct.name === description_struct_name(this.name)) {
         return struct.fields.map(
@@ -79,36 +97,103 @@ export class Table {
     await this.program.call(this.create_function.name, args);;
   }
 
-  async save(source, columns, overwrite) {
-    source = source || undefined;
-    columns = columns || undefined;
+  async save(overwrite) {
     const schema = empty_struct_data(this.description_struct);
     const description = {
       settings: {
         capacity: this.capacity,
         sync_period: this.sync_period,
-        version: package_version_as_integer(global.context.package_version),
       },
-      source,
-      columns,
+      source: {
+        datasource: this.source.datasource_name,
+        name: this.source.name,
+      },
+      columns: this.columns,
       allowed_addresses: this.allowed_adresses.map(
         (address) => address.to_string()
       ),
-      view_key: random_from_type("scalar"),
+      view_key: this.view_key,
+      snarkdb_version: this.snarkdb_version,
     };
     const table_definitions_dir = get_table_dir(this.database, this.name);
     await save_object(table_definitions_dir, definition_filename, description, !overwrite);
 
     await save_encrypted_schema(
       this.name, this.allowed_adresses, description.view_key, schema
-    )
+    );
     return await this.program.save();
   }
 
   async sync() {
-    const queryRunner = dataSource.createQueryRunner();
-    const table = await queryRunner.getTable(tableName);
+    const commit = await this.last_commit;
+    if (commit != null && commit.timestamp + this.sync_period > Date.now()) {
+      return;
+    }
+    await this.commit();
   }
+
+  async commit() {
+    const rows_path = "";
+    await this.save_rows(rows_path);
+  }
+
+  async save_rows(rows_path) {
+    const queryRunner = this.source.datasource.createQueryRunner();
+    await queryRunner.connect();
+    if (!/^[a-zA-Z0-9_]+$/.test(this.name)) {
+      throw new Error("Invalid table name");
+    }
+    const sqlQuery = `SELECT * FROM ${this.name}`;
+    const stream = await queryRunner.stream(sqlQuery);
+    const row_adapter = columns_to_row_adapter(this.definition_columns);
+    stream.on("data", (row) => {
+      this.save_row(rows_path, row_adapter(row));
+    });
+    await new Promise((resolve, reject) => {
+      stream.on("end", () => {
+        resolve();
+      });
+      stream.on("error", (err) => {
+        reject(err);
+      });
+    });
+
+    await queryRunner.release();
+  }
+
+  async save_row(rows_path, row) {
+    console.log(row);
+  }
+
+
+  get last_commit() {
+    return (async () => {
+      const table_commits_dir = get_table_commits_dir(this.database, this.name);
+      let commit_ids = null;
+      try {
+        commit_ids = await fs.readdir(table_commits_dir);
+      } catch (e) {
+        return null;
+      }
+      if (commit_ids.length === 0)
+        return null;
+      const commits = await Promise.all(
+        commit_ids.map(
+          async (commit_id) =>
+            await get_commit_data_from_id(this.database, this.name, commit_id)
+        )
+      );
+      const sorted_commits = commits.sort(
+        (a, b) => b.timestamp - a.timestamp
+      );
+      return sorted_commits[commits.length - 1];
+    })();
+  }
+
+  async close() {
+    await this.source.datasource.destroy()
+  }
+
 }
 
 
@@ -130,7 +215,15 @@ Table.from_parsed_table = async function ({
 
 
 Table.from_columns = function (
-  database_name, table_name, columns, allowed_adresses, capacity, sync_period, datasource
+  database_name,
+  table_name,
+  columns,
+  allowed_adresses,
+  capacity,
+  sync_period,
+  source,
+  view_key,
+  snarkdb_version
 ) {
   const is_view = false;
   const program = table_from_columns(table_name, columns, is_view);
@@ -141,9 +234,39 @@ Table.from_columns = function (
     allowed_adresses,
     capacity,
     sync_period,
-    datasource
+    source,
+    columns,
+    view_key,
+    snarkdb_version
   );
 };
+
+
+Table.from_definition = async function (
+  database_name, table_name, definition
+) {
+  const allowed_addresses = definition.allowed_addresses.map(
+    (address) => Address.from_string(address)
+  );
+  const datasource = await get_datasource(definition.source.datasource);
+  const source = {
+    datasource,
+    name: definition.source.name,
+    datasource_name: definition.source.datasource,
+  };
+  return Table.from_columns(
+    database_name,
+    table_name,
+    definition.columns,
+    allowed_addresses,
+    definition.settings.capacity,
+    definition.settings.sync_period,
+    source,
+    definition.view_key,
+    definition.snarkdb_version
+  );
+};
+
 
 
 Table.from_code = function (
@@ -600,18 +723,9 @@ export const table_visibility_to_addresses = (visibility) => {
   visibility = (visibility === "public" || visibility === "") ?
     "aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc" :
     visibility;
-  visibility = visibility.split(",");
-  const addresses = visibility.map(
-    (address) => Address.from_string(address)
-  );
+  const addresses = visibility.split(",");
   return addresses;
 };
-
-
-function package_version_as_integer(version) {
-  const [major, minor, patch] = version.split(".").map((n) => parseInt(n));
-  return major * 10000 + minor * 100 + patch;
-}
 
 
 const save_encrypted_schema = async (
@@ -653,4 +767,40 @@ export async function get_table_definition(database, tablename) {
   const definition_path = `${table_definitions_dir}/${definition_filename}.json`;
   const definition = JSON.parse(await fs.readFile(definition_path));
   return definition;
+}
+
+
+const columns_to_row_adapter = (columns) => {
+  const typeorm_to_snarkdb = Object.fromEntries(
+    columns.map(
+      ({ snarkdb, typeorm }) => [
+        typeorm.name,
+        { key: snarkdb.name, type: snarkdb.type }
+      ]
+    )
+  );
+  return (row) => {
+    const filtered_row = {};
+    for (const [column, value] of Object.entries(row)) {
+      const snarkdb_adapter = typeorm_to_snarkdb?.[column];
+      if (snarkdb_adapter != null) {
+        filtered_row[snarkdb_adapter.key] = value;//value_to_snarkdb(value, snarkdb_adapter.type);
+      }
+    }
+    return filtered_row;
+  };
+}
+
+
+const value_to_snarkdb = (value, type) => {
+  if (type.category === "integer")
+    return `${parseInt(value)}${type.value}`;
+
+  if (type.category === "boolean") {
+    return `${Boolean(value)}`;
+  }
+
+  throw Error(
+    `Unsupported type : '${type.value}'.`
+  );
 }

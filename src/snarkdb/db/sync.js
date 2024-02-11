@@ -26,5 +26,6 @@ export const sync = async () => {
   }
   for (const table of tables) {
     await table.sync();
+    await table.close();
   }
 }
