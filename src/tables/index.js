@@ -7,7 +7,8 @@ import { random_from_type } from 'aleo/types/index.js';
 
 
 export async function list_tables() {
-  const tables = await get_address_tables_names(global.context.account.address().to_string());
+  const database = global.context.account.address().to_string();
+  const tables = await get_address_tables_names(database);
   if (tables.length === 0) {
     return console.log('No tables found.');
   }
@@ -186,8 +187,14 @@ function typeorm_to_aleo_type(typeorm_type) {
 
 export async function get_address_tables_names(address) {
   const this_tables_dir = `${tables_dir}/${address}`;
-  const tables = await fs.readdir(this_tables_dir);
-  return tables;
+  try {
+    return await fs.readdir(this_tables_dir);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return [];
+    }
+    throw error;
+  }
 }
 
 

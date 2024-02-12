@@ -1,5 +1,5 @@
 import { randBetween } from 'bigint-crypto-utils'
-
+import { bech32m } from "bech32";
 
 export const constant_type_ranges = {
   scalar: {
@@ -49,6 +49,67 @@ export const random_from_type = (type) => {
 export const format_type = (int_val, type_str) => {
   return `${int_val}${type_str}`;
 }
+
+
+
+export function integer_to_bech32(inputStr) {
+  // Adjust the regex to capture any ending alphanumeric sequence as the type
+  const matches = inputStr.match(/(\d+)(\w+)$/);
+  if (!matches) {
+    throw new Error("Invalid input format.");
+  }
+
+  const integerPart = matches[1];
+  const typePart = matches[2];
+
+  // Convert the integer part to a byte array (8-bit unsigned integers)
+  const byteArray = BigInt(integerPart).toString(16).padStart(64, '0'); // Ensure 256 bits
+  const bytes = [];
+  for (let i = 0; i < byteArray.length; i += 2) {
+    bytes.push(parseInt(byteArray.substr(i, 2), 16));
+  }
+
+  // Encode to bech32m
+  const encoded = bech32m.encode(typePart, bech32m.toWords(new Uint8Array(bytes)));
+
+  return encoded;
+}
+
+
+export function bech32_to_integer(inputStr) {
+  // Adjust the regex to capture any ending alphanumeric sequence as the type
+  const matches = inputStr.match(/(\d+)(\w+)$/);
+  if (!matches) {
+    throw new Error("Invalid input format.");
+  }
+
+  const integerPart = matches[1];
+  const typePart = matches[2];
+
+  // Convert the integer part to a byte array (8-bit unsigned integers)
+  const byteArray = BigInt(integerPart).toString(16).padStart(64, '0'); // Ensure 256 bits
+  const bytes = [];
+  for (let i = 0; i < byteArray.length; i += 2) {
+    bytes.push(parseInt(byteArray.substr(i, 2), 16));
+  }
+
+  // Encode to bech32m
+  const encoded = bech32m.encode(typePart, bech32m.toWords(new Uint8Array(bytes)));
+
+  return encoded;
+}
+
+
+
+export function is_valid_address(address) {
+  try {
+    const { prefix, words } = bech32m.decode(address);
+    return words.length === 52 && prefix === "aleo";
+  } catch (e) {
+    return false;
+  }
+}
+
 
 
 export const integer_types = [

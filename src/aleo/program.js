@@ -15,7 +15,7 @@ import {
 } from '../aleo/index.js';
 
 import { save_file } from 'utils/index.js';
-import { get_program_dir_path } from "snarkdb/db/index.js";
+import { get_resources_program_dir_path } from "snarkdb/db/index.js";
 
 export class Program {
   name;
@@ -97,7 +97,7 @@ export class Program {
   }
 
   async save() {
-    const dir = get_program_dir_path(this.name);
+    const dir = get_resources_program_dir_path(this.name);
     return await save_file(
       dir,
       "main",
@@ -622,11 +622,13 @@ const instruction_to_code = (line, block_name) => {
 
 const opcodes_to_code = {
   "cast": (line, block_name) => format_line(line, true),
+  "hash.bhp256": (line, block_name) => format_line(line, true),
   "_default": (line, block_name) => format_line(line, false),
 }
 
 
 const format_line = (line, explicit_type = false) => {
+  explicit_type = true
   const { inputs, outputs, opcode } = line;
   const inputs_code = inputs.map(({ name }) => name).join(" ");
   let output_code = "";

@@ -6,7 +6,11 @@ import {
   load_cached_program_source,
 } from 'aleo/proof.js';
 
-import { get_table_commit_rows_dir, get_table_commit_dir } from 'snarkdb/db/index.js';
+import {
+  get_table_commit_rows_dir,
+  get_table_commit_dir,
+  get_public_table_commit_rows_dir
+} from 'snarkdb/db/index.js';
 
 import { Table, description_struct_name } from 'snarkdb/sql/table.js';
 
@@ -22,7 +26,6 @@ import crypto from 'crypto';
 
 
 const commit_data_filename = "data";
-
 
 
 export const save_commit_data_from_id = async (database, table, commit_id, commit_data) => {
@@ -41,6 +44,25 @@ export const save_commit_row = async (database, table, commit_id, row_id, row) =
   const commit_dir = get_table_commit_rows_dir(database, table, commit_id);
   await save_object(commit_dir, row_id, row);
 }
+
+export const save_public_commit_row = async (database, table, commit_id, row_id, row) => {
+  const commit_dir = get_public_table_commit_rows_dir(database, table, commit_id);
+  await save_object(commit_dir, row_id, row);
+}
+
+export const get_commit_rows = async (database, table, commit_id) => {
+  const commit_dir = get_table_commit_rows_dir(database, table, commit_id);
+  return (await fs.readdir(commit_dir)).map(
+    row => row.split('.')[0]
+  );
+}
+
+export const get_commit_row = async (database, table, commit_id, row_id) => {
+  const commit_dir = get_table_commit_rows_dir(database, table, commit_id);
+  const commit_path = `${commit_dir}/${row_id}.json`;
+  return JSON.parse(await fs.readFile(commit_path, 'utf8'));
+}
+
 
 
 export const table_insert_row = async (

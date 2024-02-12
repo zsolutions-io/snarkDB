@@ -37,7 +37,8 @@ export async function list_datasources() {
     const config = await get_datasource_config(identifier);
 
     for (const [key, value] of Object.entries(config)) {
-      console.log(`  ・ ${key}: ${value}`);
+      const val = (key === "password") ? "***" : value;
+      console.log(`  ・ ${key}: ${val}`);
     }
   }
 }

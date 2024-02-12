@@ -10,9 +10,7 @@ function sk_to_pk:
 function commit_state:
     input r0 as field.private; // state
     input r1 as scalar.private; // commit private key (csk)
-    
     commit.bhp256 r0 r1 into r2 as field;
-
     output r2 as field.public; // new commit
 
 

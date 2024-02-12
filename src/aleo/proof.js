@@ -20,22 +20,28 @@ import {
 import fs from 'fs/promises';
 import fsExists from 'fs.promises.exists'
 
-import { programs_dir, programs_to_copy } from '../utils/index.js';
-import { resources_programs_dir } from 'snarkdb/db/index.js';
+import { programs_to_copy } from '../utils/index.js';
+import {
+  get_resources_program_dir_path,
+  get_program_dir_path
+} from 'snarkdb/db/index.js';
 
 export async function load_cached_program_source(
   program_id
 ) {
   const copy_from_program_dir_if_not_exist = programs_to_copy.includes(program_id);
-  const program_dir_exists = await fsExists(resources_programs_dir);
-  const program_code_path = `${resources_programs_dir}/main.aleo`;
+  const program_dir = get_program_dir_path(program_id);
+  const resources_program_dir = get_resources_program_dir_path(program_id);
+
+  const program_dir_exists = await fsExists(resources_program_dir);
+  const program_code_path = `${resources_program_dir}/main.aleo`;
   if (!program_dir_exists && !copy_from_program_dir_if_not_exist) {
     throw `Program ${JSON.stringify(program_id)} not found.`;
   }
   if (!program_dir_exists) {
-    await fs.mkdir(program_dir, { recursive: true });
-    const from_program_code_path = `${programs_dir}/${program_id}/main.aleo`;
-    await fs.copyFile(from_program_code_path, program_code_path);
+    const from_code_path = `${program_dir}/main.aleo`;
+    await fs.mkdir(resources_program_dir, { recursive: true });
+    await fs.copyFile(from_code_path, program_code_path);
   }
 
   const program_code = await fs.readFile(program_code_path, 'utf8');
@@ -53,7 +59,6 @@ export async function execute_offline(
     private_key = global.context.account.privateKey().to_string();
   if (prove_execution == null)
     prove_execution = false;
-
   const program_code = await load_cached_program_source(program_id);
 
   const [
@@ -215,7 +220,7 @@ export async function load_program_keys_from_files(
   program_id,
   function_name,
 ) {
-  const program_dir = program_dir_path(program_id);
+  const program_dir = get_resources_program_dir_path(program_id);
   const proving_path = `${program_dir}/${function_name}.prover`;
   const verifying_path = `${program_dir}/${function_name}.verifier`;
 
@@ -232,7 +237,7 @@ export async function load_program_keys_from_files(
 
 
 const program_function_paths = (program_id, function_name) => {
-  const program_dir = program_dir_path(program_id);
+  const program_dir = get_resources_program_dir_path(program_id);
   const proving_path = `${program_dir}/${function_name}.prover`;
   const verifying_path = `${program_dir}/${function_name}.verifier`;
   const cache_path = `${program_dir}/${function_name}.hash`;
@@ -313,7 +318,7 @@ export async function load_program_keys(
   );
 
   if (save_to_cache && !same_cache) {
-    const program_dir = program_dir_path(program_id);
+    const program_dir = get_resources_program_dir_path(program_id);
     const prover_dir_exists = await fsExists(program_dir);
     if (!prover_dir_exists)
       await fs.mkdir(program_dir, { recursive: true });

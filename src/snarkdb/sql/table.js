@@ -1,11 +1,23 @@
 import { zip, diff, get_duplicates, inter } from "utils/index.js";
 import { Program, is_valid_address } from "aleo/index.js";
-import { empty_struct_data, get_commit_data_from_id, save_commit_row, save_commit_data_from_id } from "snarkdb/db/commit.js";
-import { get_table_dir, get_public_table_dir } from "snarkdb/db/index.js";
+import {
+  execute_offline,
+} from 'aleo/proof.js';
+import {
+  empty_struct_data,
+  get_commit_data_from_id,
+  save_commit_row,
+  save_commit_data_from_id,
+  get_commit_rows,
+  get_commit_row,
+} from "snarkdb/db/commit.js";
+import { get_table_dir, get_public_table_dir, get_table_commits_dir } from "snarkdb/db/index.js";
 import { save_object } from "utils/index.js";
 import { get_datasource } from "datasources/index.js";
-import { get_table_commits_dir, } from "snarkdb/db/index.js";
+import { get_table_commit_dir, } from "snarkdb/db/index.js";
 import crypto from "crypto";
+
+import { random_from_type, } from 'aleo/types/index.js';
 
 import {
   encrypt_for_anyof_addresses_to_file,
@@ -54,8 +66,8 @@ export class Table {
     return table_row_record(this.name);
   }
 
-  get create_function() {
-    return table_create_function(this.name);
+  get insert_function() {
+    return table_insert_function(this.name);
   }
 
   get columns() {
@@ -63,14 +75,6 @@ export class Table {
     for (const struct of this.program.structs) {
       if (struct.name === description_struct_name(this.name)) {
         return struct.fields.map(
-          /*
-          ({ name, type }) => ({
-            attribute: name,
-            aleo_type: type,
-            sql_type: null,
-            ast_type: null,
-          })
-          */
           ({ name, type }) => ({
             snarkdb: {
               name,
@@ -86,7 +90,6 @@ export class Table {
     );
   }
 
-
   async insert(query) {
     if (this.is_view)
       throw Error("Cannot insert into a view.");
@@ -94,7 +97,7 @@ export class Table {
     const row = query_to_insert_row(this.columns, query);
     const args = [row_to_record_string(row)];
 
-    await this.program.call(this.create_function.name, args);;
+    await this.program.call(this.insert_function.name, args);;
   }
 
   async save(overwrite) {
@@ -116,7 +119,9 @@ export class Table {
       snarkdb_version: this.snarkdb_version,
     };
     const table_definitions_dir = get_table_dir(this.database, this.name);
-    await save_object(table_definitions_dir, definition_filename, description, !overwrite);
+    await save_object(
+      table_definitions_dir, definition_filename, description, !overwrite
+    );
 
     await save_encrypted_schema(
       this.name, this.allowed_adresses, description.view_key, schema
@@ -126,7 +131,10 @@ export class Table {
 
   async sync() {
     const commit = await this.last_commit;
-    if (commit != null && commit.timestamp + this.sync_period > Date.now()) {
+    if (
+      commit != null
+      && commit.timestamp + this.sync_period * 1000 > Date.now()
+    ) {
       return;
     }
     await this.commit();
@@ -134,13 +142,26 @@ export class Table {
 
   async commit() {
     const commit_temp_id = crypto.randomUUID().replace(/-/g, "");
-    await this.save_rows(commit_temp_id);
+    const rows = await this.save_rows(commit_temp_id);
+    const row_amount = rows.size;
+    const decoy_amount = this.capacity - row_amount;
+    await this.save_decoys(commit_temp_id, decoy_amount);
+    const csk = random_from_type("scalar");
+    const commit_id = await this.compute_commit_id(commit_temp_id, csk);
+    await fs.rename(
+      get_table_commit_dir(this.database, this.name, commit_temp_id),
+      get_table_commit_dir(this.database, this.name, commit_id)
+    );
+    console.log(`Commit ${commit_id} created for table ${this.name}.`);
 
     const commit_data = {
       timestamp: Date.now(),
+      row_amount,
+      csk
     }
-
-    await save_commit_data_from_id(this.database, this.name, commit_temp_id, commit_data)
+    await save_commit_data_from_id(
+      this.database, this.name, commit_id, commit_data
+    );
   }
 
   async save_rows(commit_id) {
@@ -152,8 +173,12 @@ export class Table {
     const sqlQuery = `SELECT * FROM ${this.source.name}`;
     const stream = await queryRunner.stream(sqlQuery);
     const row_adapter = columns_to_row_adapter(this.definition_columns);
+
+    const rows = new Set();
     stream.on("data", (row) => {
-      this.save_row(commit_id, row_adapter(row));
+      rows.add(
+        this.save_row(commit_id, row_adapter(row), false)
+      );
     });
     await new Promise((resolve, reject) => {
       stream.on("end", () => {
@@ -165,17 +190,31 @@ export class Table {
     });
 
     await queryRunner.release();
+    return rows;
   }
 
-  async save_row(commit_id, row) {
+  async save_decoys(commit_id, amount) {
+    const row = empty_struct_data(this.description_struct);
+    await Promise.all(
+      [...Array(amount)].map(
+        (_) => this.save_row(
+          commit_id,
+          row,
+          true
+        )
+      )
+    )
+  }
+
+  async save_row(commit_id, data, decoy) {
     const row_id = crypto.randomUUID().replace(/-/g, "");
     const row_data = {
-      row,
-
+      data,
+      decoy: Boolean(decoy),
     }
     await save_commit_row(this.database, this.name, commit_id, row_id, row_data);
+    return row_id;
   }
-
 
   get last_commit() {
     return (async () => {
@@ -197,7 +236,7 @@ export class Table {
       const sorted_commits = commits.sort(
         (a, b) => b.timestamp - a.timestamp
       );
-      return sorted_commits[commits.length - 1];
+      return sorted_commits[0];
     })();
   }
 
@@ -205,6 +244,36 @@ export class Table {
     await this.source.datasource.destroy()
   }
 
+  async compute_commit_id(commit_id, csk) {
+    const rows = await get_commit_rows(this.database, this.name, commit_id);
+    let state = "0field";
+
+    for (const row_id of rows) {
+      const row = await get_commit_row(this.database, this.name, commit_id, row_id);
+      const inputs = [
+        row.data,
+        state
+      ];
+      const { outputs } = await execute_offline(
+        this.name,
+        this.insert_function.name,
+        inputs,
+        false,
+      );
+      state = outputs[0];
+    }
+    const inputs = [
+      state,
+      csk,
+    ];
+    const { outputs } = await execute_offline(
+      "utils",
+      "commit_state",
+      inputs,
+      false,
+    );
+    return outputs[0];
+  }
 }
 
 
@@ -301,40 +370,15 @@ export const row_record_name = (table_name) => (
   `Row_${table_name}`
 );
 
-export const state_record_name = (table_name) => (
-  `State_${table_name}`
+
+export const insert_function_name = (table_name) => (
+  `insert_${table_name}`
 );
 
-
-export const create_function_name = (table_name) => (
-  `create_${table_name}`
-);
-
-
-export const update_function_name = (table_name) => (
-  `update_${table_name}`
-);
-
-
-export const delete_function_name = (table_name) => (
-  `delete_${table_name}`
-);
 
 const encrypted_schema_filename = "encrypted_schema";
 const definition_filename = "definition";
 
-const is_program_view = (program) => {
-  return inter(
-    new Set(
-      program.structs.map(({ name }) => name)
-    ),
-    new Set([
-      create_function_name(program.name),
-      update_function_name(program.name),
-      delete_function_name(program.name),
-    ])
-  ).size === 3;
-}
 
 
 const table_from_columns = (table_name, columns, is_view) => {
@@ -389,6 +433,14 @@ const table_row_record = (table_name) => {
           value: description_struct_name(table_name),
           visibility: "private",
         },
+      },
+      {
+        name: "decoy",
+        type: {
+          category: "boolean",
+          value: "boolean",
+          visibility: "private",
+        },
       }
     ],
   }
@@ -396,22 +448,13 @@ const table_row_record = (table_name) => {
 
 
 const table_functions = (table_name, is_view) => {
-  return !is_view ? table_crud_functions(table_name) : [];
+  return [table_insert_function(table_name)];
 }
 
 
-const table_crud_functions = (table_name) => {
-  return [
-    table_create_function(table_name),
-    table_update_function(table_name),
-    table_delete_function(table_name),
-  ];
-}
-
-
-const table_create_function = (table_name) => {
+const table_insert_function = (table_name) => {
   return {
-    name: create_function_name(table_name),
+    name: insert_function_name(table_name),
     inputs: [
       {
         name: "r0",
@@ -419,111 +462,56 @@ const table_create_function = (table_name) => {
           category: "custom",
           value: description_struct_name(table_name),
           visibility: "private",
-        },
-      },
-    ],
-    body: [
-      {
-        opcode: "cast",
-        inputs: [
-          {
-            name: "self.caller",
-          },
-          {
-            name: "r0",
-          },
-        ],
-        outputs: [{
-          name: "r1",
-          type: {
-            category: "custom",
-            value: row_record_name(table_name),
-            type: "record",
-          },
-        }],
-      },
-    ],
-    outputs: [{
-      name: "r1",
-      type: {
-        category: "custom",
-        value: row_record_name(table_name),
-        visibility: "record",
-      },
-    },],
-  };
-}
-
-
-const table_update_function = (table_name) => {
-  return {
-    name: update_function_name(table_name),
-    inputs: [
-      {
-        name: "r0",
-        type: {
-          category: "custom",
-          value: row_record_name(table_name),
-          visibility: "record",
         },
       },
       {
         name: "r1",
         type: {
-          category: "custom",
-          value: description_struct_name(table_name),
+          category: "integer",
+          value: "field",
           visibility: "private",
         },
       },
     ],
     body: [
       {
-        opcode: "cast",
+        opcode: "hash.bhp256",
         inputs: [
           {
-            name: "self.caller",
-          },
-          {
-            name: "r1",
+            name: "r0",
           },
         ],
         outputs: [{
           name: "r2",
           type: {
-            category: "custom",
-            value: row_record_name(table_name),
-            type: "record",
+            category: "integer",
+            value: "field",
           },
+        }],
+      },
+      {
+        opcode: "add",
+        inputs: [
+          {
+            name: "r1",
+          },
+          {
+            name: "r2",
+          },
+        ],
+        outputs: [{
+          name: "r3",
         }],
       },
     ],
     outputs: [{
-      name: "r2",
+      name: "r3",
       type: {
-        category: "custom",
-        value: row_record_name(table_name),
-        visibility: "record",
+        category: "integer",
+        value: "field",
+        visibility: "private",
       },
     },],
-  };
-}
-
-
-const table_delete_function = (table_name) => {
-  return {
-    name: delete_function_name(table_name),
-    inputs: [
-      {
-        name: "r0",
-        type: {
-          category: "custom",
-          value: row_record_name(table_name),
-          visibility: "record",
-        },
-      },
-    ],
-    outputs: [],
-    body: [],
   };
 }
 
@@ -795,10 +783,17 @@ const columns_to_row_adapter = (columns) => {
     for (const [column, value] of Object.entries(row)) {
       const snarkdb_adapter = typeorm_to_snarkdb?.[column];
       if (snarkdb_adapter != null) {
-        filtered_row[snarkdb_adapter.key] = value;//value_to_snarkdb(value, snarkdb_adapter.type);
+        filtered_row[snarkdb_adapter.key] = value_to_snarkdb(value, snarkdb_adapter.type);
       }
     }
-    return filtered_row;
+    const filtered_row_str = `{`
+      + Object.entries(filtered_row)
+        .map(
+          ([column, value]) => `${column}:${value}`
+        )
+        .join(',')
+      + `}`;
+    return filtered_row_str;
   };
 }
 

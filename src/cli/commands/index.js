@@ -1,11 +1,11 @@
 import datasources from './datasources.js';
 import tables from './tables.js';
-import requests from './requests.js';
+import queries from './queries.js';
 import start from './start.js';
 
 export default {
   datasources,
   tables,
-  requests,
+  queries,
   start,
 }

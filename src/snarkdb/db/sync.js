@@ -6,7 +6,7 @@ import {
   get_address_tables
 } from "tables/index.js";
 
-const period = 1000;
+const period = 60 * 1000;
 
 
 export const continuous_sync = async () => {
