@@ -1,4 +1,6 @@
-# zkSQL interpreter based on Aleo
+# snarkDB
+
+snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases as private set intersection, proof of data origin/processing, and more.
 
 ## Install
 

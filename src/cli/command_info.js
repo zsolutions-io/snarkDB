@@ -4,7 +4,7 @@ export default {
   program_name: "snarkdb".green.bold,
   usage_description: "Usage:".yellow.bold,
   args_pattern: "<COMMAND> [OPTIONS]",
-  description: "snarkDB is a tool for exposing your RDBMS to zero knowledge SQL queries.",
+  description: "snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries.",
   optional_args: [
     {
       name: "privateKey",

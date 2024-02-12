@@ -101,15 +101,6 @@ export function bech32_to_integer(inputStr) {
 
 
 
-export function is_valid_address(address) {
-  try {
-    const { prefix, words } = bech32m.decode(address);
-    return words.length === 52 && prefix === "aleo";
-  } catch (e) {
-    return false;
-  }
-}
-
 
 
 export const integer_types = [

@@ -6,7 +6,7 @@ import {
 import { get_help_message } from "../help.js"
 
 
-const name = "tables";
+const name = "table";
 
 const expose_name = "expose";
 const expose_args = [

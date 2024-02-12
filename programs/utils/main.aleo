@@ -14,6 +14,16 @@ function commit_state:
     output r2 as field.public; // new commit
 
 
+function commit_multi_state:
+    input r0 as field.private; // data state
+    input r1 as field.private; // dsk state
+    input r2 as scalar.private; // csk
+    commit.bhp256 r0 r2 into r3 as field;
+    commit.bhp256 r1 r2 into r4 as field;
+    output r3 as field.public;
+    output r4 as field.public;
+
+
 function commit_null_state:
     input r0 as scalar.private; // commit private key (csk)
     commit.bhp256 0field r0 into r1 as field;

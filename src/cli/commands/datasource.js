@@ -7,7 +7,7 @@ import {
 import { get_help_message } from "../help.js"
 
 
-const name = "datasources";
+const name = "datasource";
 
 const add_name = "add";
 const add_args = [

@@ -333,8 +333,10 @@ export async function load_program_keys(
 }
 
 
-const hash_str = (source) => {
+export const hash_str = (source) => {
   const hash = crypto.createHash('sha256');
   hash.update(source);
   return hash.digest('hex');
 }
+
+

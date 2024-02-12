@@ -1,7 +1,7 @@
 {
   "name": "snarkdb",
   "version": "1.0.0",
-  "description": "A Zero Knowledge Relational Database Management System.",
+  "description": "snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries.",
   "main": "dist/cli/main.js",
   "files": [
     "dist"

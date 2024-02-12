@@ -4,7 +4,7 @@ import {
   retrieve_query_result
 } from "snarkdb/queries/index.js";
 
-const name = "queries";
+const name = "query";
 
 
 const execute_name = "execute";

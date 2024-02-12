@@ -504,6 +504,21 @@ export const empty_struct_data = (struct, visibility) => {
   );
 }
 
+export const random_struct_data = (struct) => {
+  return (
+    "{"
+    + struct
+      .fields
+      .map(
+        (field) => (
+          `${field.name}:${random_from_type(field.type.category === "integer" ? field.type.value : "custom")}`
+        )
+      )
+      .join(",")
+    + "}"
+  );
+}
+
 
 const execute_select_on_row = async (
   request_id,

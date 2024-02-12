@@ -5,6 +5,7 @@ import {
 } from 'aleo/proof.js';
 import {
   empty_struct_data,
+  random_struct_data,
   get_commit_data_from_id,
   save_commit_row,
   save_commit_data_from_id,
@@ -16,8 +17,9 @@ import { save_object } from "utils/index.js";
 import { get_datasource } from "datasources/index.js";
 import { get_table_commit_dir, } from "snarkdb/db/index.js";
 import crypto from "crypto";
-
+import { table_insert_function } from "./insert.js";
 import { random_from_type, } from 'aleo/types/index.js';
+import { hash_str } from "aleo/proof.js";
 
 import {
   encrypt_for_anyof_addresses_to_file,
@@ -60,6 +62,10 @@ export class Table {
 
   get description_struct() {
     return table_description_struct(this.name, this.columns);
+  }
+
+  get dsk_struct() {
+    return table_dsk_struct(this.name, this.columns);
   }
 
   get row_record() {
@@ -147,7 +153,10 @@ export class Table {
     const decoy_amount = this.capacity - row_amount;
     await this.save_decoys(commit_temp_id, decoy_amount);
     const csk = random_from_type("scalar");
-    const commit_id = await this.compute_commit_id(commit_temp_id, csk);
+    const {
+      data_commit_id, dsk_commit_id
+    } = await this.compute_commit_ids(commit_temp_id, csk);
+    const commit_id = combine_commit_ids(data_commit_id, dsk_commit_id);
     await fs.rename(
       get_table_commit_dir(this.database, this.name, commit_temp_id),
       get_table_commit_dir(this.database, this.name, commit_id)
@@ -157,7 +166,9 @@ export class Table {
     const commit_data = {
       timestamp: Date.now(),
       row_amount,
-      csk
+      csk,
+      data_commit_id,
+      dsk_commit_id,
     }
     await save_commit_data_from_id(
       this.database, this.name, commit_id, commit_data
@@ -211,6 +222,7 @@ export class Table {
     const row_data = {
       data,
       decoy: Boolean(decoy),
+      dsk: random_struct_data(this.dsk_struct),
     }
     await save_commit_row(this.database, this.name, commit_id, row_id, row_data);
     return row_id;
@@ -244,15 +256,19 @@ export class Table {
     await this.source.datasource.destroy()
   }
 
-  async compute_commit_id(commit_id, csk) {
+  async compute_commit_ids(commit_id, csk) {
     const rows = await get_commit_rows(this.database, this.name, commit_id);
-    let state = "0field";
+    let data_state = "0field";
+    let dsk_state = "0field";
 
     for (const row_id of rows) {
       const row = await get_commit_row(this.database, this.name, commit_id, row_id);
+
       const inputs = [
         row.data,
-        state
+        data_state,
+        row.dsk,
+        dsk_state,
       ];
       const { outputs } = await execute_offline(
         this.name,
@@ -260,19 +276,23 @@ export class Table {
         inputs,
         false,
       );
-      state = outputs[0];
+      data_state = outputs[0];
+      dsk_state = outputs[1];
     }
-    const inputs = [
-      state,
-      csk,
-    ];
-    const { outputs } = await execute_offline(
+    const { outputs: [data_commit_id] } = await execute_offline(
       "utils",
       "commit_state",
-      inputs,
+      [data_state, csk],
       false,
     );
-    return outputs[0];
+    const { outputs: [dsk_commit_id] } = await execute_offline(
+      "utils",
+      "commit_state",
+      [dsk_state, csk],
+      false,
+    );
+
+    return { data_commit_id, dsk_commit_id };
   }
 }
 
@@ -361,6 +381,21 @@ Table.from_code = function (
 };
 
 
+
+
+export const combine_commit_ids = (data_commit_id, dsk_commit_id) => {
+  const part1 = data_commit_id.replace(/\D/g, '');
+  const part2 = dsk_commit_id.replace(/\D/g, '');
+
+  return hash_str(`${part1}${part2}`);
+}
+
+
+export const dsk_struct_name = (table_name) => (
+  `Dsk_${table_name}`
+);
+
+
 export const description_struct_name = (table_name) => (
   `Desc_${table_name}`
 );
@@ -396,7 +431,10 @@ const table_from_columns = (table_name, columns, is_view) => {
 }
 
 const table_structs = (table_name, columns) => {
-  return [table_description_struct(table_name, columns)];
+  return [
+    table_description_struct(table_name, columns),
+    table_dsk_struct(table_name, columns),
+  ];
 }
 
 
@@ -407,6 +445,26 @@ const table_description_struct = (table_name, columns) => {
     fields: struct_attributes,
   };
 }
+
+
+const table_dsk_struct = (table_name, columns) => {
+  const struct_attributes = columns
+    .map(column_to_attribute)
+    .map(
+      ({ name, type }) => ({
+        name,
+        type: {
+          category: "integer",
+          value: "field",
+        },
+      })
+    );
+  return {
+    name: dsk_struct_name(table_name),
+    fields: struct_attributes,
+  };
+}
+
 
 
 const table_records = (table_name) => {
@@ -452,68 +510,6 @@ const table_functions = (table_name, is_view) => {
 }
 
 
-const table_insert_function = (table_name) => {
-  return {
-    name: insert_function_name(table_name),
-    inputs: [
-      {
-        name: "r0",
-        type: {
-          category: "custom",
-          value: description_struct_name(table_name),
-          visibility: "private",
-        },
-      },
-      {
-        name: "r1",
-        type: {
-          category: "integer",
-          value: "field",
-          visibility: "private",
-        },
-      },
-    ],
-    body: [
-      {
-        opcode: "hash.bhp256",
-        inputs: [
-          {
-            name: "r0",
-          },
-        ],
-        outputs: [{
-          name: "r2",
-          type: {
-            category: "integer",
-            value: "field",
-          },
-        }],
-      },
-      {
-        opcode: "add",
-        inputs: [
-          {
-            name: "r1",
-          },
-          {
-            name: "r2",
-          },
-        ],
-        outputs: [{
-          name: "r3",
-        }],
-      },
-    ],
-    outputs: [{
-      name: "r3",
-      type: {
-        category: "integer",
-        value: "field",
-        visibility: "private",
-      },
-    },],
-  };
-}
 
 
 const column_to_aleo_string = ({ attribute, value, aleo_type, ast_type }) => {
