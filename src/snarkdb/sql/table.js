@@ -46,6 +46,7 @@ export class Table {
     view_key,
     snarkdb_version,
     as = null,
+    is_view = false
   ) {
     this.program = program;
     this.database = database_name;
@@ -58,6 +59,7 @@ export class Table {
     this.view_key = view_key;
     this.snarkdb_version = snarkdb_version;
     this.ref = as || table_name;
+    this.is_view = is_view;
   }
 
   get description_struct() {
@@ -330,9 +332,10 @@ Table.from_columns = function (
   source,
   view_key,
   snarkdb_version,
-  as
+  as,
+  is_view
 ) {
-  const is_view = false;
+  is_view = Boolean(is_view);
   const program = table_from_columns(table_name, columns, is_view);
   return new Table(
     database_name,
@@ -345,7 +348,8 @@ Table.from_columns = function (
     columns,
     view_key,
     snarkdb_version,
-    as
+    as,
+    is_view
   );
 };
 
@@ -512,7 +516,7 @@ const table_row_record = (table_name) => {
 
 
 const table_functions = (table_name, is_view) => {
-  return [table_insert_function(table_name)];
+  return is_view ? [] : [table_insert_function(table_name)];
 }
 
 

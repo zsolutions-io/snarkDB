@@ -28,9 +28,9 @@ struct Desc_table2:
 function process_select:
     input v_0000_0016 as table2.aleo/Row_table2.record; // row record
     input v_0000_0015 as scalar.private; // csk
-    input v_0000_0014 as field.private; // previous state
+    input v_0000_0014 as field.private; // previous data state
     input v_0000_0013 as scalar.private; // previous csk
-    input v_0000_0012 as field.public; // previous commit
+    input v_0000_0012 as field.public; // previous data commit
     input v_0000_0011 as scalar.private; // out psk
 
     commit.bhp256 v_0000_0014 v_0000_0013 into v_0000_0010 as field;
@@ -51,8 +51,8 @@ function process_select:
     // Empty result creation if result data not relevant 
     ternary v_0000_0018 v_0000_0006.col 0field into v_0000_0020;
     // ... for each selected column
-
     cast v_0000_0020 into v_0000_0019 as Desc_select;
+    
     cast aleo1l96m5aqndzqm6253xee2j887xxh4c6w6h9ksdaknst9mq3xrfv8senek7g v_0000_0019 v_0000_0022 v_0000_0011 into v_0000_0003 as Row_select.record; // new row
 
     commit.bhp256 v_0000_0019 v_0000_0011 into v_0000_0002 as field; // output process commit

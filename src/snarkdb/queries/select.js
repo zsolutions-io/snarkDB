@@ -9,6 +9,8 @@ import {
 } from "../sql/table.js";
 import { network_get_records } from "../../aleo/network.js";
 import { Table } from "../sql/table.js";
+import { VariableManager } from "aleo/program.js";
+import { null_value_from_type } from "aleo/types/index.js";
 
 
 export const execute_select_query = async (query) => {
@@ -53,6 +55,13 @@ export const select_query_to_table = (froms, fields, where, aggregates) => {
     global.context.account.address().to_string(),
     table_name,
     columns,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
     true,
   );
 
@@ -94,46 +103,9 @@ const select_done_record = (table) => {
 }
 
 
-const select_request_record = (table, froms, aggregates) => {
-  return {
-    name: done_record_name(table.name),
-    fields: ([
-      {
-        name: "owner",
-        type: {
-          category: "address",
-          value: "address",
-          visibility: "private",
-        },
-      },
-      {
-        name: "id",
-        type: {
-          category: "integer",
-          value: "field",
-          visibility: "private",
-        },
-      },
-    ]).concat(
-      aggregates.length ? [
-        {
-          name: "aggregates",
-          type: {
-            category: "custom",
-            value: aggregates_struct_name(table.name),
-            visibility: "private",
-          },
-        },
-      ] : []),
-  };
-}
-
 
 const select_records = (table, froms, aggregates) => {
-  return [
-    select_done_record(table),
-    select_request_record(table, froms, aggregates),
-  ];
+  return [];
 }
 
 
@@ -155,7 +127,6 @@ const select_structs = (table, froms, aggregates) => {
 const select_functions = (table, froms, fields, where) => {
   return [
     ...select_process_functions(table, froms, fields, where),
-    select_done_function(table, froms)
   ];
 }
 
@@ -179,16 +150,12 @@ const select_process_functions = (table, froms, fields, where) => {
 const single_from_select_process_function = (
   to, from, fields, index, where
 ) => {
-  const select_filter_cast_inputs = fields.map(
-    ({ column, ref }) => ({
-      name: `r0.${column.name}`,
-    })
-  );
-  return {
+  const vars = new VariableManager();
+  const fct = {
     name: `proc_${to.name}`,
     inputs: [
       {
-        name: "r0",
+        name: vars.let("selected_table_record"),
         type: {
           category: "custom",
           value: from.row_record.name,
@@ -196,114 +163,353 @@ const single_from_select_process_function = (
           from_program: from.name
         },
       },
+      {
+        name: vars.let("csk"),
+        type: {
+          category: "integer",
+          value: "scalar",
+          visibility: "private",
+        },
+      },
+      {
+        name: vars.let("prev_data_state"),
+        type: {
+          category: "integer",
+          value: "field",
+          visibility: "private",
+        },
+      },
+      {
+        name: vars.let("prev_csk"),
+        type: {
+          category: "integer",
+          value: "scalar",
+          visibility: "private",
+        },
+      },
+      {
+        name: vars.let("prev_data_commit"),
+        type: {
+          category: "integer",
+          value: "field",
+          visibility: "public",
+        },
+      },
+      {
+        name: vars.let("out_psk"),
+        type: {
+          category: "integer",
+          value: "scalar",
+          visibility: "private",
+        },
+      },
     ],
     body: [
       {
-        opcode: "assert_eq",
+        opcode: "commit.bhp256",
         inputs: [
           {
-            name: "self.caller",
+            name: vars.get("prev_data_state"),
           },
           {
-            name: from.database,
+            name: vars.get("prev_csk"),
           }
         ],
-        outputs: [],
+        outputs: [{
+          name: vars.let("actual_prev_data_commit"),
+          type: {
+            category: "integer",
+            value: "field",
+          },
+        }],
+      },
+      {
+        opcode: "assert.eq",
+        inputs: [
+          {
+            name: vars.get("actual_prev_data_commit"),
+          },
+          {
+            name: vars.get("prev_data_commit"),
+          }
+        ],
+      },
+      {
+        opcode: "hash.bhp256",
+        inputs: [
+          {
+            name: `${vars.get("selected_table_record")}.data`,
+          },
+        ],
+        outputs: [{
+          name: vars.let("selected_table_record_data_hash"),
+          type: {
+            category: "integer",
+            value: "field",
+          },
+        }],
+      },
+      {
+        opcode: "ternary",
+        inputs: [
+          {
+            name: `${vars.get("selected_table_record")}.decoy`,
+          },
+          {
+            name: `0field`,
+          },
+          {
+            name: `${vars.get("selected_table_record_data_hash")}`,
+          },
+        ],
+        outputs: [
+          {
+            name: vars.let("selected_table_record_data_state"),
+          },
+        ],
+      },
+      {
+        opcode: "add",
+        inputs: [
+          {
+            name: vars.get("prev_data_state"),
+          },
+          {
+            name: vars.get("selected_table_record_data_state"),
+          },
+        ],
+        outputs: [
+          {
+            name: vars.let("new_data_state"),
+          },
+        ],
+      },
+      {
+        opcode: "commit.bhp256",
+        inputs: [
+          {
+            name: vars.get("new_data_state"),
+          },
+          {
+            name: vars.get("csk"),
+          },
+        ],
+        outputs: [
+          {
+            name: vars.let("new_data_commit"),
+            type: {
+              category: "integer",
+              value: "field",
+            },
+          },
+        ],
       },
       {
         opcode: "cast",
-        inputs: select_filter_cast_inputs,
+        inputs: select_filter_cast_inputs(vars, fields),
         outputs: [{
-          name: "r1",
+          name: vars.let("temp_select_result_data"),
           type: {
             category: "custom",
             value: to.description_struct.name,
           },
         }],
       },
+      ...get_single_from_where_instructions(vars, where),
       {
-        opcode: "cast",
+        opcode: "not",
         inputs: [
           {
-            name: to.database,
-          },
-          {
-            name: "r1",
-          },
-        ],
-        outputs: [{
-          name: "r2",
-          type: {
-            category: "custom",
-            value: to.row_record.name,
-            visibility: "record",
-          },
-        }],
-      }
-    ],
-    outputs: [{
-      name: "r2",
-      type: {
-        category: "custom",
-        value: to.row_record.name,
-        visibility: "record",
-      },
-    },],
-  };
-}
-
-
-const select_done_function = (to, froms) => {
-  return (froms.length === 1) ?
-    single_from_select_done_function(to, froms[0]) :
-    multiple_from_select_done_function(to, froms);
-  // TODO: implement multiple froms
-}
-
-
-const single_from_select_done_function = (to, from) => {
-  return {
-    name: `end_${to.name}`,
-    inputs: [],
-    body: [
-      {
-        opcode: "assert_eq",
-        inputs: [
-          {
-            name: "self.caller",
-          },
-          {
-            name: from.database,
+            name: `${vars.get("selected_table_record")}.decoy`,
           }
         ],
-        outputs: [],
+        outputs: [
+          {
+            name: vars.let("is_not_decoy"),
+          },
+        ],
       },
+      {
+        opcode: "and",
+        inputs: [
+          {
+            name: vars.get("is_not_decoy"),
+          },
+          {
+            name: vars.get("where_result"),
+          },
+        ],
+        outputs: [
+          {
+            name: vars.let("is_result_data_relevant"),
+          },
+        ],
+      },
+      {
+        opcode: "not",
+        inputs: [
+          {
+            name: vars.get("is_result_data_relevant"),
+          },
+        ],
+        outputs: [
+          {
+            name: vars.let("is_result_data_not_relevant"),
+          },
+        ],
+      },
+      ...empty_irrelevant_data_instructions(vars, fields, to.description_struct.name),
       {
         opcode: "cast",
         inputs: [
           {
             name: to.database,
           },
+          {
+            name: vars.get("select_result_data"),
+          },
+          {
+            name: vars.get("out_psk"),
+          },
         ],
-        outputs: [{
-          name: "r0",
+        outputs: [
+          {
+            name: vars.let("new_process_commit"),
+            type: {
+              category: "integer",
+              value: "field",
+            },
+          },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: vars.get("new_data_state"),
+        type: {
+          category: "integer",
+          value: "field",
+          visibility: "private",
+        },
+      },
+      {
+        name: vars.get("new_data_commit"),
+        type: {
+          category: "integer",
+          value: "field",
+          visibility: "public",
+        },
+      },
+      {
+        name: vars.get("select_result_data"),
+        type: {
+          category: "custom",
+          value: to.row_record.name,
+          visibility: "record",
+        },
+      },
+      {
+        name: vars.get("new_process_commit"),
+        type: {
+          category: "integer",
+          value: "field",
+          visibility: "public",
+        },
+      },
+    ],
+  };
+
+  if (from.is_view) {
+    fct.body.push({
+      opcode: "cast",
+      inputs: [
+        {
+          name: `${vars.get("selected_table_record")}.data`,
+        },
+        {
+          name: `${vars.get("selected_table_record")}.psk`,
+        },
+      ],
+      outputs: [
+        {
+          name: vars.let("prev_process_commit"),
+          type: {
+            category: "integer",
+            value: "field",
+          },
+        },
+      ],
+    });
+    fct.outputs.push({
+      name: vars.get("prev_process_commit"),
+      type: {
+        category: "integer",
+        value: "field",
+        visibility: "public",
+      },
+    });
+  }
+  return fct;
+}
+
+
+const select_filter_cast_inputs = (vars, fields) => {
+  return fields.map(
+    ({ column, ref }) => ({
+      name: `${vars.get("selected_table_record")}.data.${column.snarkdb.name}`,
+    })
+  );
+}
+
+
+const empty_irrelevant_data_instructions = (vars, fields, description_struct_name) => {
+  const instructions = fields.map(
+    ({ column, ref }, i) => (
+      {
+        opcode: "ternary",
+        inputs: [
+          {
+            name: vars.get("is_result_data_relevant"),
+          },
+          {
+            name: `${vars.get("temp_select_result_data")}.${column.snarkdb.name}`,
+          },
+          {
+            name: null_value_from_type(column.snarkdb.type),
+          },
+        ],
+        outputs: [
+          {
+            name: vars.let(`select_result_data[${i}]`),
+          },
+        ],
+      }
+    )
+  );
+
+  instructions.push(
+    {
+      opcode: "cast",
+      inputs: fields.map(
+        ({ column, ref }, i) => (
+          {
+            name: vars.get(`select_result_data[${i}]`),
+          }
+        )
+      ),
+      outputs: [
+        {
+          name: vars.let(`select_result_data`),
           type: {
             category: "custom",
-            value: select_done_record(to).name,
-            visibility: "record",
+            value: description_struct_name,
           },
-        }],
-      }
-    ],
-    outputs: [{
-      name: "r0",
-      type: {
-        category: "custom",
-        value: select_done_record(to).name,
-        visibility: "record",
-      },
-    },],
-  };
+        },
+      ],
+    }
+  );
+
+  return instructions;
 }
 
 
@@ -354,20 +560,6 @@ const parse_where_expression = (expression, froms, fields, all_fields) => {
 }
 
 
-const where_to_instructions = (where) => {
-  if (where?.type === "bool")
-    return where.value;
-  if (where?.type === "number")
-    return Boolean(where.value);
-  if (where?.type === "binary_expr")
-    return where_binary_expr_to_instructions(where);
-  if (where?.type === "column_ref")
-    return where_binary_expr_to_instructions(where);
-  throw new Error(
-    `Where clause type ${where.type} not supported.`
-  );
-}
-
 
 const parse_column_ref_expression = (expression, froms, fields, all_fields) => {
   let corresponding_fields = expression?.table ? fields.filter(
@@ -393,4 +585,44 @@ const parse_binary_expr_expression = (expression) => {
   const { left, right, operator } = expression;
 
   return expression;
+}
+
+const get_single_from_where_instructions = (vars, where) => {
+  if (where == null)
+    return boolean_where_instructions(vars, true);
+  if (where?.type === "bool")
+    return boolean_where_instructions(vars, where.value);
+  if (where?.type === "number")
+    return boolean_where_instructions(vars, Number(where.value));
+  if (where?.type === "binary_expr")
+    return where_binary_expr_to_instructions(where);
+  if (where?.type === "column_ref")
+    return where_binary_expr_to_instructions(where);
+  throw new Error(
+    `Where clause type ${where.type} not supported.`
+  );
+}
+
+
+
+const boolean_where_instructions = (vars, boolean) => {
+  boolean = Boolean(boolean);
+  return [
+    {
+      opcode: "is.eq",
+      inputs: [
+        {
+          name: "true",
+        },
+        {
+          name: `${boolean}`,
+        },
+      ],
+      outputs: [
+        {
+          name: vars.let("where_result"),
+        },
+      ],
+    }
+  ];
 }

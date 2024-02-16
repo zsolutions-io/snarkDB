@@ -668,3 +668,38 @@ const type_to_code = (type, explicit_visibility) => {
   return `${program}${type.value}${visibility}`;
 }
 
+
+const aleo_var_prefix = "r";
+
+const index_to_var = (index) => {
+  return `${aleo_var_prefix}${index}`;
+}
+
+
+export class VariableManager {
+  refs;
+
+  constructor() {
+    this.refs = {};
+  }
+
+  get next() {
+    return Object.keys(this.refs).length;
+  }
+
+  let(ref) {
+    if (ref in this.refs) {
+      throw new Error(`Variable '${ref}' already exists.`);
+    }
+    this.refs[ref] = this.next;
+    return index_to_var(this.refs[ref]);
+  }
+
+  get(ref) {
+    if (!(ref in this.refs)) {
+      throw new Error(`Variable '${ref}' does not exist.`);
+    }
+
+    return index_to_var(this.refs[ref]);
+  }
+}
