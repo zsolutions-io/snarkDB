@@ -4,7 +4,7 @@ import {
 } from '@aleohq/sdk';
 import { random_from_type } from 'aleo/types/index.js';
 import { save_object } from "utils/index.js";
-
+import fs from 'fs/promises';
 
 export const encrypt_for_anyof_addresses_to_file = async (
   with_address,
@@ -43,10 +43,10 @@ export const encrypt_for_anyof_addresses_to_file = async (
 export const decrypt_file_from_anyof_address_no_public = async (
   anyof_view_key,
   filepath,
+  from,
 ) => {
   const enc_description = JSON.parse(await fs.readFile(filepath));
   const { view_key_ciphertexts, content, view_key_address } = enc_description;
-
   let view_key_scalar = null;
   for (const view_key_ciphertext of view_key_ciphertexts) {
     try {
@@ -67,7 +67,7 @@ export const decrypt_file_from_anyof_address_no_public = async (
   const view_key = ViewKey.from_scalar(view_key_scalar);
   const dec_schema = view_key.decrypt_ciphertext(
     content.ciphertext,
-    Address.from_string(database).to_group()
+    Address.from_string(from).to_group()
   );
   return dec_schema;
 }
@@ -76,14 +76,16 @@ export const decrypt_file_from_anyof_address_no_public = async (
 export const decrypt_file_from_anyof_address = async (
   anyof_view_key,
   filepath,
+  from,
 ) => {
   try {
     return await decrypt_file_from_anyof_address_no_public(
-      ViewKey.from_scalar("0scalar"), filepath
+      ViewKey.from_scalar("0scalar"), filepath, from
     );
-  } catch {
+  } catch (e) {
+    console.log(e);
     return await decrypt_file_from_anyof_address_no_public(
-      anyof_view_key, filepath
+      anyof_view_key, filepath, from
     );
   }
 }

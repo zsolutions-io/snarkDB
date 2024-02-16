@@ -38,3 +38,4 @@ export function parse_record(snarkos_struct) {
 
   return JSON.parse(json_record);
 }
+

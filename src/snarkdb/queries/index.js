@@ -35,12 +35,12 @@ export const execute_query = async (query) => {
 
 const execute_parsed_query = async (query) => {
   if (query.type === "insert")
-    return await execute_insert_query(query);
+    throw new Error("INSERT queries are not supported yet.");// return await execute_insert_query(query);
   if (query.type === "select")
     return await execute_select_query(query);
   if (query.type === "create") {
     if (query.keyword === "table")
-      return await execute_create_table_query(query);
+      throw new Error("CREATE TABLE queries are not supported yet.");// return await execute_create_table_query(query);
     if (query.keyword === "database")
       throw Error(
         "A database is an Aleo account. "

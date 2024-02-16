@@ -300,16 +300,22 @@ export class Table {
 Table.from_parsed_table = async function ({
   db,
   table,
-  as
+  as,
 }) {
   const database = database_from_attribute(db);
-  const description = await read_access(table_name, database);
-
-  return new Table(
+  const schema = await read_access(table, database);
+  const columns = empty_struct_to_columns(schema);
+  return new Table.from_columns(
     database,
     table,
-    program,
-    as = as
+    columns,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    as
   );
 };
 
@@ -323,7 +329,8 @@ Table.from_columns = function (
   sync_period,
   source,
   view_key,
-  snarkdb_version
+  snarkdb_version,
+  as
 ) {
   const is_view = false;
   const program = table_from_columns(table_name, columns, is_view);
@@ -337,7 +344,8 @@ Table.from_columns = function (
     source,
     columns,
     view_key,
-    snarkdb_version
+    snarkdb_version,
+    as
   );
 };
 
@@ -368,7 +376,6 @@ Table.from_definition = async function (
 };
 
 
-
 Table.from_code = function (
   database_name, program_code
 ) {
@@ -379,8 +386,6 @@ Table.from_code = function (
     program,
   );
 };
-
-
 
 
 export const combine_commit_ids = (data_commit_id, dsk_commit_id) => {
@@ -440,6 +445,7 @@ const table_structs = (table_name, columns) => {
 
 const table_description_struct = (table_name, columns) => {
   const struct_attributes = columns.map(column_to_attribute);
+
   return {
     name: description_struct_name(table_name),
     fields: struct_attributes,
@@ -512,7 +518,7 @@ const table_functions = (table_name, is_view) => {
 
 
 
-const column_to_aleo_string = ({ attribute, value, aleo_type, ast_type }) => {
+const column_to_aleo_string = ({ name, value, aleo_type, ast_type }) => {
   if (ast_type === "number" && aleo_type.category === "integer")
     return `${value}${aleo_type.value}`;
 
@@ -537,7 +543,7 @@ const row_to_record_string = (row) => {
   let record_acc = "";
   for (const column of row) {
     const aleo_string = column_to_aleo_string(column);
-    record_acc += `${column.attribute}:${aleo_string},`;
+    record_acc += `${column.name}:${aleo_string},`;
   }
   if (record_acc.length === 0)
     throw Error("At least one row attribute necessary.");
@@ -582,7 +588,7 @@ export const get_fields_from_parsed_columns = (query_columns, all_fields) => {
     fields = fields.concat(get_fields_from_parsed_column(column, all_fields));
   }
   const duplicates = get_duplicates(
-    fields.map((row) => row.ref)
+    fields.map((row) => `'${row.ref}'`)
   );
   if (duplicates.length > 0) {
     throw Error(
@@ -601,7 +607,7 @@ export const get_all_fields = (tables) => {
     ), []
   );
   const duplicates = get_duplicates(
-    fields.map((row) => row.ref)
+    fields.map((row) => `'${row.ref}'`)
   );
   if (duplicates.length > 0) {
     throw Error(
@@ -616,9 +622,9 @@ export const get_all_fields = (tables) => {
 const get_all_fields_from_table = (table) => {
   return table.columns.map(
     (column) => ({
-      ref: column.attribute,
+      ref: column.snarkdb.name,
       table,
-      column,
+      column: column
     })
   );
 }
@@ -642,10 +648,10 @@ export const get_fields_from_parsed_column = (column, all_fields) => {
   const columns = concerned_fields
     .filter((field) => (
       column.expr.column === "*"
-      || field.column.attribute === column.expr.column
+      || field.column.snarkdb.name === column.expr.column
     ))
     .map((field) => {
-      field.ref = column.as || field.column.attribute;
+      field.ref = column.as || field.column.snarkdb.name;
       return field;
     });
 
@@ -680,10 +686,10 @@ const query_to_insert_row = (table_columns, query) => {
 const query_attributes_to_insert_row = (query_attributes, table_columns) => {
   const row = [];
   for (const column of query_attributes) {
-    for (const { attribute, aleo_type } of table_columns) {
-      if (attribute === column.name) {
+    for (const { name, aleo_type } of table_columns) {
+      if (name === column.name) {
         row.push({
-          attribute,
+          name,
           aleo_type,
           sql_type: null,
           value: column.value,
@@ -699,10 +705,10 @@ const query_attributes_to_insert_row = (query_attributes, table_columns) => {
 const throw_incompatible_row_columns = (row, columns) => {
   const expected_colnames = new Set(
     columns.map(
-      ({ attribute }) => attribute
+      ({ snarkdb }) => snarkdb.name
     )
   );
-  const gotten_colnames = new Set(row.map((row) => row.attribute));
+  const gotten_colnames = new Set(row.map((row) => row.name));
 
   const missings = ([...diff(expected_colnames, gotten_colnames)]).join(", ");
   if (missings.length > 0)
@@ -751,7 +757,8 @@ const read_access = async (tablename, database) => {
   const enc_description_path = `${table_definitions_dir}/${encrypted_schema_filename}.json`;
   const schema = await decrypt_file_from_anyof_address(
     context_view_key,
-    enc_description_path
+    enc_description_path,
+    database
   );
   return schema;
 }
@@ -805,4 +812,60 @@ const value_to_snarkdb = (value, type) => {
   throw Error(
     `Unsupported type : '${type.value}'.`
   );
+}
+
+
+const empty_struct_to_columns = (schema) => {
+  const columns =
+    schema
+      .replace(/\s/g, "")
+      .replace(/\{/g, "")
+      .replace(/\}/g, "")
+      .split(",")
+      .map((element) => {
+        const [name, value] = element.split(":");
+        return {
+          snarkdb: {
+            name: name.replace(/\s/g, ""),
+            type: snarkdb_value_to_type(value.replace(/\s/g, ""))
+          }
+        }
+      })
+  return columns;
+}
+
+
+const snarkdb_value_to_type = (value) => {
+  if ((["true", "false"]).includes(value))
+    return {
+      category: "boolean",
+      value: "boolean",
+    };
+
+  const intPattern = /(\-*\d+)(i|u)(\d+)/;
+  const matches_int = value.match(intPattern);
+  if (matches_int) {
+    const [, number1, type, number2] = matches_int;
+    return {
+      category: "integer",
+      value: `${type}${number2}`,
+    };
+  }
+  if (value.endsWith("field"))
+    return {
+      category: "integer",
+      value: "feild",
+    }
+  if (value.endsWith("group"))
+    return {
+      category: "integer",
+      value: "group",
+    }
+  if (value.endsWith("scalar"))
+    return {
+      category: "scalar",
+      value: "group",
+    }
+
+  throw Error(`Unsupported type : '${value}'.`);
 }
