@@ -1,6 +1,6 @@
 import { randBetween } from 'bigint-crypto-utils'
 import { bech32m } from "bech32";
-
+import { Account } from "@aleohq/sdk";
 export const constant_type_ranges = {
   scalar: {
     min: BigInt("0"), // included
@@ -37,6 +37,9 @@ export const type_ranges = (type) => {
 
 
 export const random_from_type = (type) => {
+  if (type === "address") {
+    return new Account().address().to_string();
+  }
   const range = type_ranges(type);
   if (!range) {
     throw new Error(`Cannot take random value of type '${type}'.`);

@@ -132,7 +132,7 @@ export class Table {
     );
 
     await save_encrypted_schema(
-      this.name, this.allowed_adresses, description.view_key, schema
+      this.database, this.name, this.allowed_adresses, description.view_key, schema
     );
     return await this.program.save();
   }
@@ -734,21 +734,21 @@ export const table_visibility_to_addresses = (visibility) => {
 
 
 const save_encrypted_schema = async (
-  tablename, addresses, view_key, schema
+  database, tablename, addresses, view_key, schema
 ) => {
-  const context_address = global.context.account.address();
+  const address = Address.from_string(database);
   const table_definitions_dir = get_public_table_dir(
-    context_address.to_string(), tablename
+    address.to_string(), tablename
   );
 
   await encrypt_for_anyof_addresses_to_file(
-    context_address,
+    address,
     schema,
     table_definitions_dir,
     encrypted_schema_filename,
     addresses,
     view_key,
-  )
+  );
 }
 
 

@@ -2,6 +2,7 @@ import { get_help_message } from "../help.js"
 import {
   execute_query,
   retrieve_query_result,
+  list_queries
 } from "snarkdb/queries/index.js";
 
 const name = "query";
@@ -32,12 +33,33 @@ const result_description = `Get results from an existing zkSQL query.`;
 const result_help = get_help_message(null, result_pattern, execute_description, result_args);
 
 const list_name = "list";
+const list_args = [
+  {
+    name: "incoming",
+    description: "Incoming requests only.",
+    required: false,
+  },
+  {
+    name: "outgoing",
+    description: "Outgoing requests only.",
+    required: false,
+  },
+  {
+    name: "all",
+    description: "List all requests.",
+    required: false,
+  },
+];
+
 const list_pattern = `${name} ${list_name} [OPTIONS]`;
-const list_description = `List all zkSQL requests related to your address.`;
-const list_help = get_help_message(null, list_pattern, list_description, null);
+const list_description = (
+  "List zkSQL requests related to your address. One of "
+  + list_args.map(({ name }) => `'${name}'`).join(", ")
+  + " options is required."
+);
+const list_help = get_help_message(null, list_pattern, list_description, list_args);
 
-
-const description = `Initiate outgoing and process incoming zkSQL queries.`;
+const description = `Initiate, process and manage zkSQL queries.`;
 const _pattern = `${name} <SUBCOMMAND> [OPTIONS]`;
 const pattern = `${name} [SUBCOMMAND] [OPTIONS]`;
 
@@ -64,8 +86,12 @@ const entrypoint = async (args) => {
     const {
       incoming,
       outgoing,
+      all,
     } = args;
-    return await list_queries(incoming, outgoing);
+    const tot = Number(Boolean(incoming)) + Number(Boolean(outgoing)) + Number(Boolean(all));
+    if (tot !== 1)
+      return console.log(list_help);
+    return await list_queries(Boolean(incoming), Boolean(outgoing), Boolean(all));
   } else if (subcommand === result_name) {
     const {
       query_id,

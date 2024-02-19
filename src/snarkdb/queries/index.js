@@ -12,10 +12,11 @@ export const execute_query = async (query) => {
   query = String(query)
   const parser = new NodeSQLParser.Parser();
   let ast;
+  let sql;
   try {
     ast = parser.astify(query);
     console.log("Executing query:");
-    const sql = parser.sqlify(ast);
+    sql = parser.sqlify(ast);
     console.log(sql);
     console.log();
   } catch (e) {
@@ -24,7 +25,7 @@ export const execute_query = async (query) => {
     return;
   }
   try {
-    await execute_parsed_query(ast);
+    await execute_parsed_query(ast, sql);
   } catch (e) {
     console.log("/!\\ Error executing query: ");
     display_error(e);
@@ -33,11 +34,11 @@ export const execute_query = async (query) => {
 };
 
 
-const execute_parsed_query = async (query) => {
+const execute_parsed_query = async (query, sql) => {
   if (query.type === "insert")
     throw new Error("INSERT queries are not supported yet.");// return await execute_insert_query(query);
   if (query.type === "select")
-    return await execute_select_query(query);
+    return await execute_select_query(query, sql);
   if (query.type === "create") {
     if (query.keyword === "table")
       throw new Error("CREATE TABLE queries are not supported yet.");// return await execute_create_table_query(query);
@@ -53,3 +54,6 @@ const execute_parsed_query = async (query) => {
 
 
 
+export const list_queries = async (incoming, outgoing, all) => {
+
+}

@@ -1,7 +1,7 @@
 import { bech32m } from "bech32";
 import crypto from 'crypto'
 
-import { hexToBytes } from "../../utils/index.js";
+import { hexToBytes, save_object } from "utils/index.js";
 import {
   get_tables_from_parsed_tables,
   get_fields_from_parsed_columns,
@@ -10,10 +10,16 @@ import {
 import { network_get_records } from "../../aleo/network.js";
 import { Table } from "../sql/table.js";
 import { VariableManager } from "aleo/program.js";
-import { null_value_from_type } from "aleo/types/index.js";
+import { null_value_from_type, random_from_type } from "aleo/types/index.js";
+import { encode_string_to_fields } from "aleo/types/custom_string.js";
 
+import { get_private_queries_dir, get_public_queries_dir } from "snarkdb/db/index.js";
+import { encrypt_for_anyof_addresses_to_file } from "aleo/encryption.js";
+import {
+  Address,
+} from '@aleohq/sdk';
 
-export const execute_select_query = async (query) => {
+export const execute_select_query = async (query, sql) => {
   const froms = await get_tables_from_parsed_tables(query?.from);
   const all_fields = get_all_fields(froms);
   const fields = get_fields_from_parsed_columns(query.columns, all_fields);
@@ -28,14 +34,76 @@ export const execute_select_query = async (query) => {
   if (all_owned)
     return await execute_select_query_owned(query, froms, fields, where);
 
-  //const program = select_query_to_program(query, froms, fields);
-  const table = select_query_to_table(froms, fields, where, aggregates);
-
-  console.log(table.program.code)
+  const query_id = random_variable_name();
+  const table = select_query_to_table(query_id, froms, fields, where, aggregates);
+  const query_program_code = table.program.code;
+  await save_query(query_id, String(sql), froms, query_program_code);
   // const program = await deploy_program(code);
   // console.log(query.from[1].on);
 }
 
+
+const save_query = async (query_id, sql_string, froms, query_program_code) => {
+  const view_key = random_from_type("scalar");
+  const query_hash = crypto.createHash('sha256').update(sql_string).digest('hex');
+  const origin = global.context.account.address().to_string();
+  const query = {
+    sql: sql_string,
+    origin,
+    hash: query_hash,
+    query_id: query_id,
+    view_key
+  };
+  const private_query_dir = get_private_queries_dir(origin, query_hash);
+  await save_object(
+    private_query_dir,
+    "description",
+    query,
+    true,
+  );
+  await save_query_public_data(query_id, sql_string, froms, view_key);
+}
+
+const total_addresses_amount = 10;
+
+const save_query_public_data = async (
+  query_id, sql_string, froms, view_key
+) => {
+  const query_as_fields = encode_string_to_fields(sql_string);
+  const query_as_fields_string = `[${query_as_fields.join(',')}]`;
+  const public_query_dir = get_public_queries_dir(query_id);
+  const context_address = global.context.account.address();
+  const filename = "encrypted_query";
+
+  const enc_addresses = [...
+    new Set(
+      froms
+        .map((from) => from.database)
+        .concat([context_address.to_string()])
+    )
+  ];
+
+  const decoys = total_addresses_amount - enc_addresses.length;
+  if (decoys < 0) {
+    throw new Error(`Too many addresses in the request: ${enc_addresses.length}.`);
+  }
+  const addresses =
+    enc_addresses
+      .concat(
+        [...new Array(decoys)].map(_ => random_from_type("address"))
+      )
+      .map((db) => Address.from_string(db));
+  const signer = Address.from_string(random_from_type("address"));
+
+  await encrypt_for_anyof_addresses_to_file(
+    signer,
+    query_as_fields_string,
+    public_query_dir,
+    filename,
+    addresses,
+    view_key,
+  );
+}
 
 
 export const execute_select_query_owned = async (
@@ -45,8 +113,8 @@ export const execute_select_query_owned = async (
 }
 
 
-export const select_query_to_table = (froms, fields, where, aggregates) => {
-  const table_name = random_variable_name("slc");
+export const select_query_to_table = (query_id, froms, fields, where, aggregates) => {
+  const table_name = query_id;
   const columns = fields.map(({ column, ref }) => ({
     ...column,
     attribute: ref,
