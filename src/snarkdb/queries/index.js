@@ -68,9 +68,7 @@ export const list_queries = async (incoming, outgoing) => {
   for (const query_id of query_ids) {
     try {
       const query = await get_query_from_id(view_key, query_id);
-      if (outgoing && !query.outgoing)
-        continue;
-      if (incoming && !query.incoming)
+      if ((!outgoing || !query.outgoing) && (!incoming || !query.incoming))
         continue;
       const newline = first ? "" : "\n";
       first = false;
@@ -78,7 +76,8 @@ export const list_queries = async (incoming, outgoing) => {
       display_query_data(
         {
           ...query.data,
-          status: "pending"
+          status: "pending",
+          next: "aleo15wktn0yr8vhxfzh9td7zhnrge9u6hra8tg4qtv2p9dumwc9mwgzqq63rlg"
         }
       );
     } catch (e) {
