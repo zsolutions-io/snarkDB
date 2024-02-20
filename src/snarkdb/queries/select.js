@@ -13,24 +13,20 @@ import { VariableManager } from "aleo/program.js";
 import { null_value_from_type, random_from_type } from "aleo/types/index.js";
 import { encode_string_to_fields } from "aleo/types/custom_string.js";
 
-import { get_private_queries_dir, get_public_queries_dir } from "snarkdb/db/index.js";
+import { get_private_query_dir, get_public_query_dir } from "snarkdb/db/index.js";
 import { encrypt_for_anyof_addresses_to_file } from "aleo/encryption.js";
 import {
   Address,
 } from '@aleohq/sdk';
 
 export const execute_select_query = async (query, sql) => {
-  const froms = await get_tables_from_parsed_tables(query?.from);
-  const all_fields = get_all_fields(froms);
-  const fields = get_fields_from_parsed_columns(query.columns, all_fields);
-  const where = parse_where_expression(query.where, froms, fields, all_fields);
-  const aggregates = [];
-  //get_aggregates_from_parsed_columns(fields);
-  //console.log({ where: where.right.value[2] });
-  const user_address = global.context.account.address().to_string();
-  const all_owned = fields.every(
-    ({ table }) => (table.database === user_address)
-  );
+  const {
+    froms,
+    fields,
+    where,
+    all_owned,
+    aggregates,
+  } = await load_select_query(query);
   if (all_owned)
     return await execute_select_query_owned(query, froms, fields, where);
 
@@ -42,36 +38,73 @@ export const execute_select_query = async (query, sql) => {
   // console.log(query.from[1].on);
 }
 
+export const load_select_query = async (query) => {
+  const froms = await get_tables_from_parsed_tables(query?.from);
+  const all_fields = get_all_fields(froms);
+  const fields = get_fields_from_parsed_columns(query.columns, all_fields);
+  const where = parse_where_expression(query.where, froms, fields, all_fields);
+  const aggregates = [];
+  //get_aggregates_from_parsed_columns(fields);
+  //console.log({ where: where.right.value[2] });
+  const all_owned = fields.every(
+    ({ table }) => (
+      table.database === global.context.account.address().to_string()
+    )
+  );
+  return {
+    froms,
+    fields,
+    where,
+    all_owned,
+    aggregates,
+  };
+}
+
 
 const save_query = async (query_id, sql_string, froms, query_program_code) => {
   const view_key = random_from_type("scalar");
   const query_hash = crypto.createHash('sha256').update(sql_string).digest('hex');
-  const origin = global.context.account.address().to_string();
+  const origin_account = global.context.account;
+  const origin = origin_account.address().to_string();
   const query = {
+    query_id: query_id,
     sql: sql_string,
     origin,
     hash: query_hash,
-    query_id: query_id,
-    view_key
+    view_key,
   };
-  const private_query_dir = get_private_queries_dir(origin, query_hash);
+  const private_query_dir = get_private_query_dir(origin, query_hash);
   await save_object(
     private_query_dir,
     "description",
     query,
     true,
   );
-  await save_query_public_data(query_id, sql_string, froms, view_key);
+  await save_query_public_data(origin_account, query_id, sql_string, froms, view_key);
 }
 
 const total_addresses_amount = 10;
 
 const save_query_public_data = async (
-  query_id, sql_string, froms, view_key
+  origin_account, query_id, sql_string, froms, view_key
 ) => {
   const query_as_fields = encode_string_to_fields(sql_string);
-  const query_as_fields_string = `[${query_as_fields.join(',')}]`;
-  const public_query_dir = get_public_queries_dir(query_id);
+  const encoded_query = `[${query_as_fields.join(',')}]`;
+
+  const query_id_as_fields = encode_string_to_fields(query_id, 1);
+  const signature = origin_account.sign(
+    new TextEncoder(
+      "utf-8"
+    ).encode(sql_string)
+  ).to_string();
+  const to_encrypt = `{
+    id: ${query_id_as_fields[0]},
+    sql: ${encoded_query},
+    sig: ${signature},
+    origin: ${origin_account.address().to_string()}
+  }`;
+
+  const public_query_dir = get_public_query_dir(query_id);
   const context_address = global.context.account.address();
   const filename = "encrypted_query";
 
@@ -97,7 +130,7 @@ const save_query_public_data = async (
 
   await encrypt_for_anyof_addresses_to_file(
     signer,
-    query_as_fields_string,
+    to_encrypt,
     public_query_dir,
     filename,
     addresses,

@@ -93,7 +93,6 @@ export const decrypt_file_from_anyof_address = async (
       ViewKey.from_scalar("0scalar"), filepath, signer_to_check
     );
   } catch (e) {
-    console.log(e);
     return await decrypt_file_from_anyof_address_no_public(
       anyof_view_key, filepath, signer_to_check
     );

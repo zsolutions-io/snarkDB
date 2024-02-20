@@ -3,6 +3,7 @@ export * from './integers.js';
 export * from './address.js';
 export * from './arrays.js';
 export * from './records.js';
+export * from './structs.js';
 import { is_valid_array, parse_array } from './arrays.js';
 import { integer_types } from './integers.js';
 

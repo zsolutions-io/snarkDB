@@ -44,17 +44,12 @@ const list_args = [
     description: "Outgoing requests only.",
     required: false,
   },
-  {
-    name: "all",
-    description: "List all requests.",
-    required: false,
-  },
 ];
 
 const list_pattern = `${name} ${list_name} [OPTIONS]`;
 const list_description = (
-  "List zkSQL requests related to your address. One of "
-  + list_args.map(({ name }) => `'${name}'`).join(", ")
+  "List zkSQL requests related to your address. At least one of "
+  + list_args.map(({ name }) => `'${name}'`).join(" or ")
   + " options is required."
 );
 const list_help = get_help_message(null, list_pattern, list_description, list_args);
@@ -86,12 +81,10 @@ const entrypoint = async (args) => {
     const {
       incoming,
       outgoing,
-      all,
     } = args;
-    const tot = Number(Boolean(incoming)) + Number(Boolean(outgoing)) + Number(Boolean(all));
-    if (tot !== 1)
+    if (!incoming && !outgoing)
       return console.log(list_help);
-    return await list_queries(Boolean(incoming), Boolean(outgoing), Boolean(all));
+    return await list_queries(Boolean(incoming), Boolean(outgoing));
   } else if (subcommand === result_name) {
     const {
       query_id,

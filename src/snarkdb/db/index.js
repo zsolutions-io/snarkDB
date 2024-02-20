@@ -46,20 +46,20 @@ export const get_public_table_commit_rows_dir = (database, table_name, commit) =
   return `${get_public_table_commit_dir(database, table_name, commit)}/rows`;
 }
 
-export const get_private_queries_dir = (origin, query_hash) => {
+export const get_private_query_dir = (origin, query_hash) => {
   return `${queries_dir}/${origin}/${query_hash}`;
 }
 
-export const get_public_queries_dir = (query_id) => {
+export const get_public_query_dir = (query_id) => {
   return `${public_queries_dir}/${query_id}`;
 }
 
 export const get_queries_results_dir = (query_id) => {
-  return `${get_private_queries_dir(query_id)}/results`;
+  return `${get_private_query_dir(query_id)}/results`;
 }
 
 export const get_queries_executions_dir = (query_id) => {
-  return `${get_public_queries_dir(query_id)}/executions`;
+  return `${get_public_query_dir(query_id)}/executions`;
 }
 
 export const get_select_executions_dir = (query_id, database, table_name) => {

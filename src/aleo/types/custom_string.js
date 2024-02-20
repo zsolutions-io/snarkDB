@@ -2,17 +2,32 @@
 const field_bit_length = 252;
 const encoding_fields_amount = 32;
 
-export function encode_string_to_fields(str) {
+export function encode_string_to_fields(
+  str,
+  _encoding_fields_amount,
+) {
+  if (_encoding_fields_amount == null) _encoding_fields_amount = encoding_fields_amount;
   return (
-    encodeStringToBigIntList(str, encoding_fields_amount, field_bit_length)
+    encodeStringToBigIntList(str, _encoding_fields_amount, field_bit_length)
       .map(field => `${field}field`)
   );
 }
 
 
-export function decode_fields_to_string(fields) {
-  return decodeBigIntListToString(
+export function decode_fields_to_string(
+  fields,
+) {
+  return decode_bigint_fields_to_string(
     fields.map(field => BigInt(field.slice(0, -5))),
+  );
+}
+
+
+export function decode_bigint_fields_to_string(
+  fields,
+) {
+  return decodeBigIntListToString(
+    fields,
     field_bit_length
   )
 }

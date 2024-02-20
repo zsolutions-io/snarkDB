@@ -49,3 +49,7 @@ export function int_version_to_string(version) {
     + '.' + (version % 100)
   );
 }
+
+export function replace_between(str, start, end, what) {
+  return str.substring(0, start) + what + str.substring(end);
+};
