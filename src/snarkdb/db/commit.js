@@ -235,7 +235,7 @@ export const get_table_last_state = async (database, table_name) => {
 export const save_execution = async (
   request_id, database, table_name, index, execution
 ) => {
-  const executions_dir = get_select_executions_dir(
+  const executions_dir = get_query_executions_dir(
     request_id, database, table_name
   );
   await save_object(
@@ -303,7 +303,7 @@ const execute_select_on_select = async (
   let prev_csk = initial_csk;
   let prev_commit = initial_commit;
 
-  const executions_dir = get_select_executions_dir(
+  const executions_dir = get_query_executions_dir(
     from_request_id, last_from_table.database, last_from_table.name
   );
   const executions_dir_exists = await fsExists(executions_dir);
@@ -646,7 +646,7 @@ export const save_select_results = async (
   request_id,
   last_table,
 ) => {
-  const executions_dir = get_select_executions_dir(
+  const executions_dir = get_query_executions_dir(
     request_id, last_table.database, last_table.name
   );
   const executions_dir_exists = await fsExists(executions_dir);
@@ -698,7 +698,7 @@ export const throw_verify_select = async (
 
   let last_executions_dir = null;
   let last_execution_indexes = null;
-  const executions_dir = get_select_executions_dir(
+  const executions_dir = get_query_executions_dir(
     request_id, table.database, table.name
   );
   const executions_dir_exists = await fsExists(executions_dir);
@@ -713,7 +713,7 @@ export const throw_verify_select = async (
   );
   let expected_execution_amount = 0;
   if (nested) {
-    last_executions_dir = get_select_executions_dir(
+    last_executions_dir = get_query_executions_dir(
       table.name,
       last_table.database,
       last_table.name

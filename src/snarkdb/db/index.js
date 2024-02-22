@@ -58,12 +58,12 @@ export const get_queries_results_dir = (query_id) => {
   return `${get_private_query_dir(query_id)}/results`;
 }
 
-export const get_queries_executions_dir = (query_id) => {
+export const get_query_executions_base_dir = (query_id) => {
   return `${get_public_query_dir(query_id)}/executions`;
 }
 
-export const get_select_executions_dir = (query_id, database, table_name) => {
-  return `${get_queries_executions_dir(query_id)}/${database}/${table_name}`;
+export const get_query_executions_dir = (query_id, database, table_name) => {
+  return `${get_query_executions_base_dir(query_id)}/${database}/${table_name}`;
 }
 
 export const get_resources_program_dir_path = (program_id) => {

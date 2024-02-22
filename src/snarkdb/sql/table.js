@@ -78,6 +78,19 @@ export class Table {
     return table_insert_function(this.name);
   }
 
+  get executions() {
+    const query = this.query;
+    if (query == null) return [];
+    return this.query.froms.map(
+      (from) => (
+        {
+          executor: from.database,
+          table: this,
+        }
+      )
+    );
+  }
+
   get columns() {
     if (this.definition_columns) return this.definition_columns;
     for (const struct of this.program.structs) {

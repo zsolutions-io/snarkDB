@@ -2,7 +2,8 @@ import { get_help_message } from "../help.js"
 import {
   execute_query,
   retrieve_query_result,
-  list_queries
+  list_queries,
+  process_query,
 } from "snarkdb/queries/index.js";
 
 const name = "query";
@@ -30,7 +31,7 @@ const result_args = [
 ];
 const result_pattern = `${name} ${result_name} [OPTIONS]`;
 const result_description = `Get results from an existing zkSQL query.`;
-const result_help = get_help_message(null, result_pattern, execute_description, result_args);
+const result_help = get_help_message(null, result_pattern, result_description, result_args);
 
 const list_name = "list";
 const list_args = [
@@ -58,6 +59,18 @@ const description = `Initiate, process and manage zkSQL queries.`;
 const _pattern = `${name} <SUBCOMMAND> [OPTIONS]`;
 const pattern = `${name} [SUBCOMMAND] [OPTIONS]`;
 
+const process_name = "process";
+const process_args = [
+  {
+    name: "query_id",
+    description: "Identifier of the query to process.",
+    required: true,
+  },
+];
+const process_pattern = `${name} ${process_name} [OPTIONS]`;
+const process_description = `Process an incoming zkSQL query.`;
+const process_help = get_help_message(null, process_pattern, process_description, process_args);
+
 
 const actions = [
   {
@@ -72,6 +85,10 @@ const actions = [
     name: list_name,
     description: list_description
   },
+  {
+    name: process_name,
+    description: process_description
+  },
 ];
 
 
@@ -85,7 +102,8 @@ const entrypoint = async (args) => {
     if (!incoming && !outgoing)
       return console.log(list_help);
     return await list_queries(Boolean(incoming), Boolean(outgoing));
-  } else if (subcommand === result_name) {
+  }
+  if (subcommand === result_name) {
     const {
       query_id,
       pipe,
@@ -95,7 +113,8 @@ const entrypoint = async (args) => {
     )
       return console.log(result_help);
     return await request_result(query_id);
-  } else if (subcommand === execute_name) {
+  }
+  if (subcommand === execute_name) {
     const {
       query,
     } = args;
@@ -104,6 +123,16 @@ const entrypoint = async (args) => {
     )
       return console.log(execute_help);
     return await execute_query(query);
+  }
+  if (subcommand === process_name) {
+    const {
+      query_id,
+    } = args;
+    if (
+      query_id == null
+    )
+      return console.log(process_help);
+    return await process_query(query_id);
   }
 
   console.log(get_help_message(actions, _pattern, description, null));

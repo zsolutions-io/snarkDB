@@ -10,7 +10,7 @@ function aleo_object_to_js(aleo_obj) {
     let res = array.map((x) => aleo_object_to_js(x));
     return "[" + res.join(", ") + "]";
   }
-  const intPattern = /(\-*\d+)((i|u)(\d+)|field|scalar|group)/;
+  const intPattern = /^(\-*\d+)((i|u)(\d+)|field|scalar|group)$/;
 
   const matches_int = aleo_obj.match(intPattern);
   if (matches_int) {
