@@ -6,18 +6,21 @@ import {
 import {
   empty_struct_data,
   random_struct_data,
-  get_commit_data_from_id,
   save_commit_row,
   save_commit_data_from_id,
   get_commit_rows,
   get_commit_row,
+  get_commit_data_from_id
 } from "snarkdb/db/commit.js";
-import { get_table_dir, get_public_table_dir, get_table_commits_dir } from "snarkdb/db/index.js";
+import {
+  get_table_dir,
+  get_table_commits_dir,
+} from "snarkdb/db/index.js";
 import { save_object } from "utils/index.js";
 import { get_datasource } from "datasources/index.js";
 import { get_table_commit_dir, } from "snarkdb/db/index.js";
 import crypto from "crypto";
-import { table_insert_function } from "./insert.js";
+import { table_insert_function, table_encrypt_closure, } from "./insert.js";
 import { random_from_type, } from 'aleo/types/index.js';
 import { hash_str } from "aleo/proof.js";
 
@@ -27,6 +30,7 @@ import {
 } from 'aleo/encryption.js';
 
 import fs from "fs/promises";
+import fsExists from "fs.promises.exists";
 
 import {
   Address,
@@ -46,7 +50,8 @@ export class Table {
     view_key,
     snarkdb_version,
     as = null,
-    is_view = false
+    is_view = false,
+    commit_id = null,
   ) {
     this.program = program;
     this.database = database_name;
@@ -60,6 +65,7 @@ export class Table {
     this.snarkdb_version = snarkdb_version;
     this.ref = as || table_name;
     this.is_view = is_view;
+    this.commit_id = commit_id;
   }
 
   get description_struct() {
@@ -82,10 +88,12 @@ export class Table {
     const query = this.query;
     if (query == null) return [];
     return this.query.froms.map(
-      (from) => (
+      (from, index) => (
         {
           executor: from.database,
-          table: this,
+          query_table: this,
+          from_table: from,
+          index,
         }
       )
     );
@@ -151,7 +159,7 @@ export class Table {
   }
 
   async sync() {
-    const commit = await this.last_commit;
+    const commit = await table_last_commit(this.database, this.name);
     if (
       commit != null
       && commit.timestamp + this.sync_period * 1000 > Date.now()
@@ -172,10 +180,8 @@ export class Table {
       data_commit_id, dsk_commit_id
     } = await this.compute_commit_ids(commit_temp_id, csk);
     const commit_id = combine_commit_ids(data_commit_id, dsk_commit_id);
-    await fs.rename(
-      get_table_commit_dir(this.database, this.name, commit_temp_id),
-      get_table_commit_dir(this.database, this.name, commit_id)
-    );
+
+    await move_temp_to_permanent(this, commit_temp_id, commit_id);
     console.log(`Commit ${commit_id} created for table ${this.name}.`);
 
     const commit_data = {
@@ -184,9 +190,18 @@ export class Table {
       csk,
       data_commit_id,
       dsk_commit_id,
-    }
+    };
+    const public_commit_data = {
+      timestamp: commit_data.timestamp,
+      row_amount: this.capacity,
+      data_commit_id: commit_data.data_commit_id,
+      dsk_commit_id: commit_data.dsk_commit_id,
+    };
     await save_commit_data_from_id(
       this.database, this.name, commit_id, commit_data
+    );
+    await save_commit_data_from_id(
+      this.database, this.name, commit_id, public_commit_data, true
     );
   }
 
@@ -239,32 +254,10 @@ export class Table {
       decoy: Boolean(decoy),
       dsk: random_struct_data(this.dsk_struct),
     }
-    await save_commit_row(this.database, this.name, commit_id, row_id, row_data);
+    await save_commit_row(
+      this.database, this.name, commit_id, row_id, row_data, false, true
+    );
     return row_id;
-  }
-
-  get last_commit() {
-    return (async () => {
-      const table_commits_dir = get_table_commits_dir(this.database, this.name);
-      let commit_ids = null;
-      try {
-        commit_ids = await fs.readdir(table_commits_dir);
-      } catch (e) {
-        return null;
-      }
-      if (commit_ids.length === 0)
-        return null;
-      const commits = await Promise.all(
-        commit_ids.map(
-          async (commit_id) =>
-            await get_commit_data_from_id(this.database, this.name, commit_id)
-        )
-      );
-      const sorted_commits = commits.sort(
-        (a, b) => b.timestamp - a.timestamp
-      );
-      return sorted_commits[0];
-    })();
   }
 
   async close() {
@@ -272,18 +265,19 @@ export class Table {
   }
 
   async compute_commit_ids(commit_id, csk) {
-    const rows = await get_commit_rows(this.database, this.name, commit_id);
+    const rows = await get_commit_rows(this.database, this.name, commit_id, false, true);
     let data_state = "0field";
     let dsk_state = "0field";
 
     for (const row_id of rows) {
-      const row = await get_commit_row(this.database, this.name, commit_id, row_id);
+      const row = await get_commit_row(this.database, this.name, commit_id, row_id, false, true);
 
       const inputs = [
         row.data,
         data_state,
         row.dsk,
         dsk_state,
+        String(row.decoy),
       ];
       const { outputs } = await execute_offline(
         this.name,
@@ -293,6 +287,11 @@ export class Table {
       );
       data_state = outputs[0];
       dsk_state = outputs[1];
+      const public_row_data = { encrypted_data: outputs[2] };
+
+      await save_commit_row(
+        this.database, this.name, commit_id, row_id, public_row_data, true, true
+      );
     }
     const { outputs: [data_commit_id] } = await execute_offline(
       "utils",
@@ -317,12 +316,13 @@ Table.from_parsed_table = async function ({
   table,
   as,
 }) {
+  const { name, commit_id } = parse_table_name(table);
   const database = database_from_attribute(db);
-  const schema = await read_access(table, database);
+  const schema = await read_access(name, database);
   const columns = empty_struct_to_columns(schema);
   return new Table.from_columns(
     database,
-    table,
+    name,
     columns,
     null,
     null,
@@ -330,7 +330,9 @@ Table.from_parsed_table = async function ({
     null,
     null,
     null,
-    as
+    as,
+    false,
+    commit_id,
   );
 };
 
@@ -346,7 +348,8 @@ Table.from_columns = function (
   view_key,
   snarkdb_version,
   as,
-  is_view
+  is_view,
+  commit_id,
 ) {
   is_view = Boolean(is_view);
   const program = table_from_columns(table_name, columns, is_view);
@@ -362,7 +365,8 @@ Table.from_columns = function (
     view_key,
     snarkdb_version,
     as,
-    is_view
+    is_view,
+    commit_id
   );
 };
 
@@ -404,6 +408,54 @@ Table.from_code = function (
   );
 };
 
+const move_temp_to_permanent = async (table, commit_temp_id, commit_id) => {
+  const public_temp_dir = get_table_commit_dir(
+    table.database, table.name, commit_temp_id, false, true
+  );
+  const private_temp_dir = get_table_commit_dir(
+    table.database, table.name, commit_temp_id, true, true
+  );
+  const public_dir = get_table_commit_dir(
+    table.database, table.name, commit_id, false
+  );
+  const private_dir = get_table_commit_dir(
+    table.database, table.name, commit_id, true
+  );
+  await fs.mkdir(private_dir, { recursive: true });
+  await fs.rename(private_temp_dir, private_dir);
+  await fs.mkdir(public_dir, { recursive: true });
+  await fs.rename(public_temp_dir, public_dir);
+}
+
+
+export const table_last_commit = async (database, name) => {
+  const commit_ids = await table_commit_ids(database, name);
+  const commits = await Promise.all(
+    commit_ids.map(
+      async (commit_id) =>
+        await get_commit_data_from_id(database, name, commit_id, true)
+    )
+  );
+  const sorted_commits = commits.sort(
+    (a, b) => b.timestamp - a.timestamp
+  );
+  return sorted_commits[0];
+}
+
+export const table_commit_ids = async (database, name) => {
+  const table_commits_dir = get_table_commits_dir(database, name, true);
+  let commit_ids = [];
+  try {
+    commit_ids = await fs.readdir(table_commits_dir);
+  } catch (e) { }
+  return commit_ids;
+}
+
+export const commit_exists = async (database, name, commit_id) => {
+  const table_commits_dir = get_table_commit_dir(database, name, commit_id, true);
+  return await fsExists(table_commits_dir);
+}
+
 
 export const combine_commit_ids = (data_commit_id, dsk_commit_id) => {
   const part1 = data_commit_id.replace(/\D/g, '');
@@ -419,7 +471,11 @@ export const dsk_struct_name = (table_name) => (
 
 
 export const description_struct_name = (table_name) => (
-  `Desc_${table_name}`
+  `Data_${table_name}`
+);
+
+export const encrypt_closure_name = (table_name) => (
+  `encrypt`
 );
 
 
@@ -437,16 +493,15 @@ const encrypted_schema_filename = "encrypted_schema";
 const definition_filename = "definition";
 
 
-
 const table_from_columns = (table_name, columns, is_view) => {
   return new Program(
     table_name,
     {
       imports: [],
       structs: table_structs(table_name, columns),
-      records: table_records(table_name),
+      records: table_records(table_name, is_view),
       mappings: [],
-      closures: [],
+      closures: table_closures(table_name, columns),
       functions: table_functions(table_name, is_view),
     }
   );
@@ -488,14 +543,19 @@ const table_dsk_struct = (table_name, columns) => {
   };
 }
 
-
-
-const table_records = (table_name) => {
-  return [table_row_record(table_name)];
+const table_closures = (table_name, columns) => {
+  return [
+    table_encrypt_closure(table_name, columns),
+  ];
 }
 
 
-const table_row_record = (table_name) => {
+const table_records = (table_name, is_view) => {
+  return [table_row_record(table_name, is_view)];
+}
+
+
+const table_row_record = (table_name, is_view) => {
   return {
     name: row_record_name(table_name),
     fields: [
@@ -522,7 +582,17 @@ const table_row_record = (table_name) => {
           value: "boolean",
           visibility: "private",
         },
-      }
+      },
+      ...(!is_view ? [] : [
+        {
+          name: "psk",
+          type: {
+            category: "integer",
+            value: "scalar",
+            visibility: "private",
+          },
+        }
+      ])
     ],
   }
 }
@@ -592,11 +662,50 @@ export const get_tables_from_parsed_tables = async (tables) => {
       throw Error(
         "Nested queries are not supported for now."
       );
+    await add_db_and_commit(parsed_from_table)
+
     froms.push(
       await Table.from_parsed_table(parsed_from_table)
     );
   }
   return froms;
+}
+
+const commit_separator = "_";
+
+const add_db_and_commit = async (table) => {
+  if (table.db == null) {
+    table.db = global.context.account.address().to_string();
+  }
+  const full_name = table.table;
+  const parts = full_name.split(commit_separator);
+  if (parts.length === 0) {
+    throw new Error("Invalid table name.")
+  }
+  if (parts.length > 1) {
+    const name = parts.slice(0, parts.length - 1).join(commit_separator);
+    const commit_id = parts.at(-1);
+    const exists = await commit_exists(table.db, name, commit_id);
+    if (exists)
+      return;
+  }
+  const commit = await table_last_commit(table.db, table.table);
+  table.table = format_table_name_commit(full_name, commit.id)
+  return;
+}
+
+const parse_table_name = (table_name) => {
+  const parts = table_name.split(commit_separator);
+  const name = parts.slice(0, parts.length - 1).join(commit_separator);
+  const commit_id = parts.at(-1);
+  return {
+    name,
+    commit_id,
+  }
+}
+
+const format_table_name_commit = (name, commit_id) => {
+  return `${name}${commit_separator}${commit_id}`;
 }
 
 export const get_fields_from_parsed_columns = (query_columns, all_fields) => {
@@ -750,8 +859,8 @@ const save_encrypted_schema = async (
   database, tablename, addresses, view_key, schema
 ) => {
   const address = Address.from_string(database);
-  const table_definitions_dir = get_public_table_dir(
-    address.to_string(), tablename
+  const table_definitions_dir = get_table_dir(
+    address.to_string(), tablename, true,
   );
 
   await encrypt_for_anyof_addresses_to_file(
@@ -768,8 +877,8 @@ const save_encrypted_schema = async (
 
 const read_access = async (tablename, database) => {
   const context_view_key = global.context.account.viewKey();
-  const table_definitions_dir = get_public_table_dir(
-    database, tablename
+  const table_definitions_dir = get_table_dir(
+    database, tablename, true
   );
   const enc_description_path = `${table_definitions_dir}/${encrypted_schema_filename}.json`;
   const schema = await decrypt_file_from_anyof_address(

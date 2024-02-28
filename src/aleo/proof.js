@@ -80,6 +80,7 @@ export async function execute_offline(
     verifying_key,
     prove_execution,
   );
+  console.log({ inputs, outputs, execution })
   return { outputs, execution }
 };
 

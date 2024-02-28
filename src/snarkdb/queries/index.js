@@ -5,9 +5,10 @@ export { retrieve_query_result } from "./result.js";
 
 import { display_error } from "utils/errors.js";
 import {
-  public_queries_dir,
+  get_queries_dir,
   get_public_query_dir,
-  get_query_executions_base_dir,
+  get_query_executions_dir,
+  get_query_execution_dir,
 } from "snarkdb/db/index.js";
 import fs from "fs/promises";
 import fsExists from "fs.promises.exists";
@@ -22,20 +23,16 @@ export const execute_query = async (query) => {
   query = String(query)
   const parser = new NodeSQLParser.Parser();
   let ast;
-  let sql;
   try {
     ast = parser.astify(query);
-    console.log("Executing query:");
-    sql = parser.sqlify(ast);
-    console.log(sql);
-    console.log();
+    parser.sqlify(ast);
   } catch (e) {
     console.log("/!\\ Error parsing query: ");
     display_error(e);
     return;
   }
   try {
-    await execute_parsed_query(ast, sql);
+    await execute_parsed_query(ast);
   } catch (e) {
     console.log("/!\\ Error executing query: ");
     display_error(e);
@@ -44,14 +41,14 @@ export const execute_query = async (query) => {
 };
 
 
-const execute_parsed_query = async (query, sql) => {
+const execute_parsed_query = async (query) => {
   if (query.type === "insert")
-    throw new Error("INSERT queries are not supported yet.");// return await execute_insert_query(query);
+    throw new Error("INSERT queries are not supported.");// return await execute_insert_query(query);
   if (query.type === "select")
-    return await execute_select_query(query, sql);
+    return await execute_select_query(query);
   if (query.type === "create") {
     if (query.keyword === "table")
-      throw new Error("CREATE TABLE queries are not supported yet.");// return await execute_create_table_query(query);
+      throw new Error("CREATE TABLE queries are not supported.");// return await execute_create_table_query(query);
     if (query.keyword === "database")
       throw Error(
         "A database is an Aleo account. "
@@ -64,7 +61,7 @@ const execute_parsed_query = async (query, sql) => {
 
 
 export const list_queries = async (incoming, outgoing) => {
-  const query_ids = await fs.readdir(public_queries_dir);
+  const query_ids = await fs.readdir(get_queries_dir(true));
   const view_key = global.context.account.viewKey();
   let first = true;
   for (const query_id of query_ids) {
@@ -94,7 +91,7 @@ export const list_queries = async (incoming, outgoing) => {
           status: displayed_status,
         }
       );
-    } catch (e) { continue; }
+    } catch (e) { console.log(e); continue; }
   }
 }
 
@@ -138,11 +135,11 @@ export const get_query_from_id = async (view_key, query_id) => {
   const address = global.context.account.address().to_string();
   query.outgoing = query_data.origin === address;
   query.incoming = froms.some((from) => from.database === address);
-
-  if (query.table.executions.length === executions.length) {
+  const query_table_executions = query.table.executions;
+  if (query_table_executions.length === executions.length) {
     query.status = "processed";
   } else {
-    query.next = query.table.executions[executions.length];
+    query.next = query_table_executions[executions.length];
     query.status = (query.next.executor === address) ? "to_process" : "pending";
   }
   return query;
@@ -162,7 +159,18 @@ export const get_query_data_from_id = async (view_key, query_id) => {
 
 
 export const get_executions_from_query_id = async (query_id) => {
-  const query_dir = get_query_executions_base_dir(query_id);
+  const query_dir = get_query_executions_dir(query_id);
+  if (!await fsExists(query_dir))
+    return [];
+  const executions = (await fs.readdir(query_dir)).sort(
+    (a, b) => parseInt(a) - parseInt(b)
+  );
+
+  return executions;
+}
+
+export const get_execution_from_query_id = async (query_id, index) => {
+  const query_dir = get_query_execution_dir(query_id, index);
   if (!await fsExists(query_dir))
     return [];
   const executions = (await fs.readdir(query_dir)).sort(

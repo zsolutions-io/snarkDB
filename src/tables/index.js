@@ -1,6 +1,6 @@
 import { get_datasource } from "datasources/index.js";
 import { Table, get_table_definition, table_visibility_to_addresses } from 'snarkdb/sql/table.js';
-import { tables_dir } from "snarkdb/db/index.js";
+import { get_tables_dir } from "snarkdb/db/index.js";
 import fs from "fs/promises";
 import { package_version_as_integer, int_version_to_string } from "utils/strings.js";
 import { random_from_type } from 'aleo/types/index.js';
@@ -186,7 +186,7 @@ function typeorm_to_aleo_type(typeorm_type) {
 
 
 export async function get_address_tables_names(address) {
-  const this_tables_dir = `${tables_dir}/${address}`;
+  const this_tables_dir = `${get_tables_dir()}/${address}`;
   try {
     return await fs.readdir(this_tables_dir);
   } catch (error) {

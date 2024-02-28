@@ -112,4 +112,10 @@ nested_select owner :
   Private Key  APrivateKey1zkpHkJ47qxn8FjHgYhKotRv9cJxeGCLg42tezqhd6xZNWYD
       Address  aleo1386l43hhduwmh7jdpnsfg7twwnkhzmjfp2zg89qadqq5al2d8sgsw96584
 
-##
+## Todo
+
+- Add IPFS public directory sync to 'snarkdb start' (upload everything in public / download every relevant commits).
+
+-
+
+- Query proof verification

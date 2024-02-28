@@ -24,7 +24,7 @@ const execute_help = get_help_message(null, execute_pattern, execute_description
 const result_name = "result";
 const result_args = [
   {
-    name: "query_id",
+    name: "queryId",
     description: "Identifier of the query to retrieve.",
     required: true,
   },
@@ -62,7 +62,7 @@ const pattern = `${name} [SUBCOMMAND] [OPTIONS]`;
 const process_name = "process";
 const process_args = [
   {
-    name: "query_id",
+    name: "queryId",
     description: "Identifier of the query to process.",
     required: true,
   },
@@ -105,14 +105,14 @@ const entrypoint = async (args) => {
   }
   if (subcommand === result_name) {
     const {
-      query_id,
+      queryId,
       pipe,
     } = args;
     if (
-      query_id == null
+      queryId == null
     )
       return console.log(result_help);
-    return await request_result(query_id);
+    return await request_result(queryId);
   }
   if (subcommand === execute_name) {
     const {
@@ -126,13 +126,13 @@ const entrypoint = async (args) => {
   }
   if (subcommand === process_name) {
     const {
-      query_id,
+      queryId,
     } = args;
     if (
-      query_id == null
+      queryId == null
     )
       return console.log(process_help);
-    return await process_query(query_id);
+    return await process_query(queryId);
   }
 
   console.log(get_help_message(actions, _pattern, description, null));

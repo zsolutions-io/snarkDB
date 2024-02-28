@@ -7,13 +7,16 @@ import {
 } from 'aleo/proof.js';
 
 import {
+  get_table_commits_dir,
   get_table_commit_rows_dir,
   get_table_commit_dir,
-  get_public_table_commit_rows_dir
+  get_query_executions_dir,
+  get_query_execution_dir,
 } from 'snarkdb/db/index.js';
 
 import { Table, description_struct_name } from 'snarkdb/sql/table.js';
 
+import { proc_function_name } from 'snarkdb/queries/select.js';
 
 import fs from 'fs/promises';
 import fsExists from 'fs.promises.exists'
@@ -28,41 +31,39 @@ import crypto from 'crypto';
 const commit_data_filename = "data";
 
 
-export const save_commit_data_from_id = async (database, table, commit_id, commit_data) => {
-  const commit_dir = get_table_commit_dir(database, table, commit_id);
+export const save_commit_data_from_id = async (database, table, commit_id, commit_data, pub, temp) => {
+  const commit_dir = get_table_commit_dir(database, table, commit_id, pub, temp);
   await save_object(commit_dir, "data", commit_data);
 }
 
-export const get_commit_data_from_id = async (database, table, commit_id) => {
-  const commit_dir = get_table_commit_dir(database, table, commit_id);
+export const get_commit_data_from_id = async (database, table, commit_id, pub, temp) => {
+  const commit_dir = get_table_commit_dir(database, table, commit_id, pub, temp);
   const commit_path = `${commit_dir}/${commit_data_filename}.json`;
   const commit_data = await fs.readFile(commit_path, 'utf8');
-  return JSON.parse(commit_data);
+  return {
+    ...JSON.parse(commit_data),
+    id: commit_id,
+  };
 }
 
-export const save_commit_row = async (database, table, commit_id, row_id, row) => {
-  const commit_dir = get_table_commit_rows_dir(database, table, commit_id);
+
+export const save_commit_row = async (database, table, commit_id, row_id, row, pub, temp) => {
+  const commit_dir = get_table_commit_rows_dir(database, table, commit_id, pub, temp);
   await save_object(commit_dir, row_id, row);
 }
 
-export const save_public_commit_row = async (database, table, commit_id, row_id, row) => {
-  const commit_dir = get_public_table_commit_rows_dir(database, table, commit_id);
-  await save_object(commit_dir, row_id, row);
-}
-
-export const get_commit_rows = async (database, table, commit_id) => {
-  const commit_dir = get_table_commit_rows_dir(database, table, commit_id);
+export const get_commit_rows = async (database, table, commit_id, pub, temp) => {
+  const commit_dir = get_table_commit_rows_dir(database, table, commit_id, pub, temp);
   return (await fs.readdir(commit_dir)).map(
     row => row.split('.')[0]
   );
 }
 
-export const get_commit_row = async (database, table, commit_id, row_id) => {
-  const commit_dir = get_table_commit_rows_dir(database, table, commit_id);
+export const get_commit_row = async (database, table, commit_id, row_id, pub, temp) => {
+  const commit_dir = get_table_commit_rows_dir(database, table, commit_id, pub, temp);
   const commit_path = `${commit_dir}/${row_id}.json`;
   return JSON.parse(await fs.readFile(commit_path, 'utf8'));
 }
-
 
 
 export const table_insert_row = async (
@@ -233,10 +234,10 @@ export const get_table_last_state = async (database, table_name) => {
 
 
 export const save_execution = async (
-  request_id, database, table_name, index, execution
+  request_id, database, table_name, index, execution, execution_index
 ) => {
-  const executions_dir = get_query_executions_dir(
-    request_id, database, table_name
+  const executions_dir = get_query_execution_dir(
+    request_id, execution_index, true
   );
   await save_object(
     executions_dir, index, JSON.parse(execution),
@@ -247,6 +248,7 @@ export const process_select_from_commit = async (
   request_id,
   table,
   req_commit,
+  execution_index,
 ) => {
   const address = global.context.account.address().to_string();
 
@@ -255,17 +257,18 @@ export const process_select_from_commit = async (
       `Your address '${address}' is different from query database '${table.database}'.`
     );
   }
-
-  const target_csk = await save_relevant_commits(
-    request_id, address, table.name, req_commit.id
-  );
+  const commit_data = await get_commit_data_from_id(
+    table.database, table.name, req_commit.id,
+  )
+  const target_csk = commit_data.csk;
   const { state, csk, commit } = await initiate_select_on_commits(
-    request_id, address, table.name
+    request_id, address, table.name, execution_index
   );
 
   await execute_select_on_commits(
-    request_id, address, table, target_csk, state, csk, commit, req_commit,
+    request_id, address, table.name, target_csk, state, csk, commit, req_commit.id, execution_index
   );
+  await move_temp_to_permanent(request_id, execution_index);
 }
 
 
@@ -290,6 +293,14 @@ export const process_select_from_select = async (
 }
 
 
+const move_temp_to_permanent = async (request_id, index) => {
+  const temp_dir = get_query_execution_dir(request_id, index, true);
+  const dir = get_query_execution_dir(request_id, index);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.rename(temp_dir, dir);
+}
+
+
 const execute_select_on_select = async (
   request_id,
   database,
@@ -304,7 +315,7 @@ const execute_select_on_select = async (
   let prev_commit = initial_commit;
 
   const executions_dir = get_query_executions_dir(
-    from_request_id, last_from_table.database, last_from_table.name
+    from_request_id, true
   );
   const executions_dir_exists = await fsExists(executions_dir);
   if (!executions_dir_exists) {
@@ -347,13 +358,13 @@ const execute_select_on_select = async (
 
 
 const initiate_select_on_commits = async (
-  request_id, address, table_name
+  request_id, address, table_name, execution_index
 ) => {
   const {
     execution, inputs, outputs
   } = await execute_initiate_select_on_commits();
   await save_execution(
-    request_id, address, table_name, 0, execution
+    request_id, address, table_name, 0, execution, execution_index
   );
   return {
     state: "0field",
@@ -383,70 +394,30 @@ const execute_select_on_commits = async (
   initial_state,
   initial_csk,
   initial_commit,
-  final_commit
+  commit_id,
+  execution_index,
 ) => {
   let prev_state = initial_state;
   let prev_csk = initial_csk;
   let prev_commit = initial_commit;
 
-  const preparations_dir = get_select_preparations_dir(
-    request_id, database, table.name
-  );
-  const preparations_dir_exists = await fsExists(preparations_dir);
-  if (!preparations_dir_exists) {
-    throw new Error(`Table ${table.name} has no preparations.`);
-  }
-  const filenames = await fs.readdir(preparations_dir);
-  const preparation_former_indexes = filenames.map(
-    filename => parseInt(filename.split('.')[0])
-  ).sort(
-    (a, b) => a - b
+  const rows = await get_commit_rows(
+    database, table, commit_id,
   );
 
-  const preparation_amount = preparation_former_indexes.length;
-  const expected_commit_amount = final_commit.index * table.settings.max_new_rows_per_push;
-  const decoy_amount = expected_commit_amount - preparation_amount;
-
-
-  if (decoy_amount < 0) {
-    throw new Error(
-      `Too many new values for commit '${final_commit.id}'.`
-    );
-  }
-  const new_indexes = ([...Array(expected_commit_amount).keys()]).map((x) => (x + 1));
-  shuffle(new_indexes);
-  const preparation_new_indexes = new_indexes
-    .slice(0, preparation_amount)
-    .sort(
-      (a, b) => a - b
-    );
-
-  const empty_row_data = await get_empty_row_data(database, request_id, table.name, "private");
-
-  let preparation_index = 0;
-  for (
-    let execution_index = 1;
-    execution_index < expected_commit_amount + 1;
-    execution_index++
-  ) {
-    const last_execution = (execution_index === expected_commit_amount);
+  for (const [index, row_id] of rows.entries()) {
+    const last_execution = (index === rows.length - 1);
     const csk = last_execution ? target_csk : random_from_type("scalar");
-    const preparation_new_index = preparation_new_indexes[preparation_index];
-    const decoy = (preparation_new_index !== execution_index);
-    let row_data = empty_row_data;
-    if (!decoy) {
-      const preparation_former_index = preparation_former_indexes[preparation_index];
-      const preparation_path = `${preparations_dir}/${preparation_former_index}.json`;
-      const preparation_data = await fs.readFile(preparation_path, 'utf8');
-      row_data = JSON.parse(preparation_data);
-      preparation_index++;
-    }
+    const row = await get_commit_row(database, table, commit_id, row_id,);
     const nonce = await random_nonce();
-
+    // const psk = await random_from_type("scalar");
     const row_record = (
-      `{owner:${database}.private,data:${row_data},decoy:${decoy}.private,_nonce:${nonce}.public}`
+      `{owner:${database}.private,`
+      + `data:${struct_add_private_visibility(row.data)},`
+      + `decoy:${row.decoy}.private,`
+      //+ `psk:${psk}.private,`
+      + `_nonce:${nonce}.public}`
     );
-
     const execution = await execute_select_on_row(
       request_id,
       row_record,
@@ -456,7 +427,7 @@ const execute_select_on_commits = async (
       prev_commit,
     );
     await save_execution(
-      request_id, database, table.name, execution_index, execution.execution
+      request_id, database, table.name, index + 1, execution.execution, execution_index
     );
     prev_state = execution.outputs[0];
     prev_csk = execution.inputs[1];
@@ -464,6 +435,12 @@ const execute_select_on_commits = async (
   }
 }
 
+const struct_add_private_visibility = (struct) => {
+  return struct
+    .replace(/\,\}/g, "}")
+    .replace(/\}/g, ".private}")
+    .replace(/\,/g, ".private,");
+}
 
 const get_empty_row_data = async (database, select_name, table_name, visibility) => {
   const program_code = await load_cached_program_source(select_name);
@@ -531,7 +508,7 @@ const execute_select_on_row = async (
   const inputs = [
     row_record, csk, prev_state, prev_csk, prev_commit, random_from_type("scalar")
   ];
-  const function_name = "process_select";
+  const function_name = proc_function_name(request_id);
 
   const { outputs, execution } = await execute_offline(
     request_id,
@@ -544,74 +521,6 @@ const execute_select_on_row = async (
 }
 
 
-const save_relevant_commits = async (
-  request_id,
-  database,
-  table_name,
-  commit_id,
-) => {
-  const commits_dir = get_table_commits_dir(database, table_name);
-  const commits_dir_exists = await fsExists(commits_dir);
-  if (!commits_dir_exists) {
-    throw new Error(
-      `Table ${table_name} has no commits.`
-    );
-  }
-  const filenames = await fs.readdir(commits_dir);
-  const commit_indexes = filenames.map(
-    filename => parseInt(filename.split('.')[0])
-  ).sort(
-    (a, b) => b - a
-  );
-  let targeted_commit = null;
-  const deleted = new Set();
-  let i = 1;
-
-  for (const commit_index of commit_indexes) {
-    const commit_path = `${commits_dir}/${commit_index}.json`;
-    const commit_data = await fs.readFile(commit_path, 'utf8');
-    const commit = JSON.parse(commit_data);
-    if (targeted_commit === null && commit_id === commit.commit) {
-      targeted_commit = commit;
-    }
-    if (targeted_commit === null) {
-      continue;
-    }
-    if (commit.decoy) {
-      continue
-    }
-    const hashed_data = commit.hashed_data;
-    if (!commit.insert) {
-      deleted.add(hashed_data);
-      continue;
-    }
-    if (deleted.has(hashed_data)) {
-      deleted.delete(hashed_data);
-      continue;
-    }
-
-    await save_request_commit(
-      request_id,
-      database,
-      table_name,
-      commit.data,
-      `-${i}`
-    );
-    i++;
-  }
-
-  if (deleted.size) {
-    throw new Error(
-      `A deleted row was never inserted.`
-    );
-  }
-  if (targeted_commit === null) {
-    throw new Error(
-      `Commit ${commit_id} not found.`
-    );
-  }
-  return targeted_commit.csk;
-}
 
 
 export const verify_select_from_commit = async (
@@ -647,7 +556,7 @@ export const save_select_results = async (
   last_table,
 ) => {
   const executions_dir = get_query_executions_dir(
-    request_id, last_table.database, last_table.name
+    request_id, true
   );
   const executions_dir_exists = await fsExists(executions_dir);
   if (!executions_dir_exists) {
@@ -699,7 +608,7 @@ export const throw_verify_select = async (
   let last_executions_dir = null;
   let last_execution_indexes = null;
   const executions_dir = get_query_executions_dir(
-    request_id, table.database, table.name
+    request_id, true
   );
   const executions_dir_exists = await fsExists(executions_dir);
   if (!executions_dir_exists) {
@@ -715,8 +624,7 @@ export const throw_verify_select = async (
   if (nested) {
     last_executions_dir = get_query_executions_dir(
       table.name,
-      last_table.database,
-      last_table.name
+      true,
     );
     const last_executions_dir_exists = await fsExists(last_executions_dir);
     if (!last_executions_dir_exists) {
@@ -764,7 +672,7 @@ export const throw_verify_select = async (
   }
   let commit = execution.transitions[0].outputs[0].value;
 
-  let process_function_name = "process_select";
+  let process_function_name = proc_function_name(request_id);
 
   const program_code = await load_cached_program_source(request_id);
 

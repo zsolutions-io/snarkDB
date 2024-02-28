@@ -18,8 +18,9 @@ import { encrypt_for_anyof_addresses_to_file } from "aleo/encryption.js";
 import {
   Address,
 } from '@aleohq/sdk';
+import NodeSQLParser from "node-sql-parser";
 
-export const execute_select_query = async (query, sql) => {
+export const execute_select_query = async (query) => {
   const {
     froms,
     fields,
@@ -27,13 +28,18 @@ export const execute_select_query = async (query, sql) => {
     all_owned,
     aggregates,
   } = await load_select_query(query);
+  const parser = new NodeSQLParser.Parser();
+  const sql = parser.sqlify(query);
+  console.log("Executing query:");
+  console.log(sql);
   if (all_owned)
     return await execute_select_query_owned(query, froms, fields, where);
 
   const query_id = random_variable_name();
   const table = select_query_to_table(query_id, froms, fields, where, aggregates);
   const query_program_code = table.program.code;
-  await save_query(query_id, String(sql), froms, query_program_code);
+
+  await save_query(query_id, String(sql), froms,);
   // const program = await deploy_program(code);
   // console.log(query.from[1].on);
 }
@@ -61,7 +67,7 @@ export const load_select_query = async (query) => {
 }
 
 
-const save_query = async (query_id, sql_string, froms, query_program_code) => {
+const save_query = async (query_id, sql_string, froms,) => {
   const view_key = random_from_type("scalar");
   const query_hash = crypto.createHash('sha256').update(sql_string).digest('hex');
   const origin_account = global.context.account;
@@ -247,13 +253,16 @@ const select_process_functions = (table, froms, fields, where) => {
   )
 }
 
+export const proc_function_name = (table_name) => {
+  return `proc_${table_name}`;
+}
 
 const single_from_select_process_function = (
   to, from, fields, index, where
 ) => {
   const vars = new VariableManager();
   const fct = {
-    name: `proc_${to.name}`,
+    name: proc_function_name(to.name),
     inputs: [
       {
         name: vars.let("selected_table_record"),
@@ -470,6 +479,30 @@ const single_from_select_process_function = (
             name: vars.get("select_result_data"),
           },
           {
+            name: vars.get("is_result_data_not_relevant"),
+          },
+          {
+            name: vars.get("out_psk"),
+          },
+        ],
+        outputs: [
+          {
+            name: vars.let("out_record"),
+            type: {
+              category: "custom",
+              value: to.row_record.name,
+              visibility: "record",
+            },
+          },
+        ],
+      },
+      {
+        opcode: "commit.bhp256",
+        inputs: [
+          {
+            name: vars.get("select_result_data"),
+          },
+          {
             name: vars.get("out_psk"),
           },
         ],
@@ -502,7 +535,7 @@ const single_from_select_process_function = (
         },
       },
       {
-        name: vars.get("select_result_data"),
+        name: vars.get("out_record"),
         type: {
           category: "custom",
           value: to.row_record.name,
