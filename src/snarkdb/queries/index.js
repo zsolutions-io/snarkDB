@@ -4,11 +4,13 @@ import { execute_select_query, load_select_query, select_query_to_table } from "
 export { retrieve_query_result } from "./result.js";
 
 import { display_error } from "utils/errors.js";
+import { save_object } from "utils/index.js";
 import {
   get_queries_dir,
   get_public_query_dir,
   get_query_executions_dir,
   get_query_execution_dir,
+  get_private_query_dir,
 } from "snarkdb/db/index.js";
 import fs from "fs/promises";
 import fsExists from "fs.promises.exists";
@@ -91,7 +93,10 @@ export const list_queries = async (incoming, outgoing) => {
           status: displayed_status,
         }
       );
-    } catch (e) { console.log(e); continue; }
+    } catch (e) {
+      console.log(`Error processing query '${query_id}':`);
+      console.log(e);
+    }
   }
 }
 
@@ -155,6 +160,34 @@ export const get_query_data_from_id = async (view_key, query_id) => {
   );
   const query_data = decrypted_query_to_data(decrypted_query, query_id);
   return query_data;
+}
+
+
+export const get_query_private_result_data = async (origin, query_hash) => {
+  const query_dir = get_private_query_dir(origin, query_hash);
+
+  if (!await fsExists(query_dir)) {
+    return null;
+  }
+
+  const query_results_data_path = `${query_dir}/results.json`;
+
+  if (!await fsExists(query_results_data_path)) {
+    return {
+      checked: false,
+    };
+  }
+  const query_results_data = JSON.parse(
+    await fs.readFile(query_results_data_path, 'utf-8')
+  );
+  return query_results_data;
+}
+
+export const save_query_private_result_data = async (origin, query_hash, data) => {
+  const query_dir = get_private_query_dir(origin, query_hash);
+  await save_object(
+    query_dir, 'results', data,
+  );
 }
 
 

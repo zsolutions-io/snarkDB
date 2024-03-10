@@ -10,6 +10,8 @@ import {
 } from 'snarkdb/db/commit.js';
 
 
+import NodeSQLParser from "node-sql-parser";
+
 export const retrieve_query_result = async (query_id) => {
   //{col_2_1:456field,col_2_2:789field,col_2_3:false}
   /*
@@ -22,6 +24,12 @@ export const retrieve_query_result = async (query_id) => {
     "table2",
   );
   */
+  const parser = new NodeSQLParser.Parser();
+  const query = String(query_id)
+  const [ast] = parser.astify(query);
+  //const sql = parser.sqlify(ast);
+  console.log(JSON.stringify(ast, null, 2));
+  return;
   const table2 = {
     name: "table2",
     database: "aleo1386l43hhduwmh7jdpnsfg7twwnkhzmjfp2zg89qadqq5al2d8sgsw96584",

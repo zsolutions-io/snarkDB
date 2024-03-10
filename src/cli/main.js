@@ -25,6 +25,8 @@ import { resources_dir } from 'utils/index.js';
 import path from 'path';
 import { root_path } from 'utils/index.js';
 
+import { snarkdb_account } from 'snarkdb/accounts/index.js';
+
 import colors from 'colors';
 
 dotenv.config({ path: path.resolve(root_path, '.env.local') });
@@ -36,12 +38,10 @@ const load_context = async (argv) => {
   const endpoint = argv?.endpoint ? argv.endpoint : process.env.NETWORK_API_URL;
   context.endpoint = endpoint;
   try {
-    const account =
-      argv?.privateKey ?
-        new Account({ privateKey: argv.privateKey })
-        : process.env.PRIVATE_KEY ?
-          new Account({ privateKey: process.env.PRIVATE_KEY })
-          : null;
+    const mnemonic = argv?.mnemonic ? argv.mnemonic : process.env.MNEMONIC;
+    const { account, ipfs } = mnemonic ?
+      await snarkdb_account(mnemonic) :
+      { account: null, mnemonic: null, ipfs };
     const verbosity =
       argv?.verbosity ?
         Number(argv.verbosity)
@@ -63,18 +63,20 @@ const load_context = async (argv) => {
       ...context,
       package_version,
       account,
+      mnemonic,
+      ipfs,
       verbosity,
       keyProvider,
       networkClient,
       recordProvider,
       programManager
     };
-
   } catch (e) {
-    throw new Error("Failed to load private key.")
+    console.log(e);
+    throw new Error("Failed to load mnemonic.")
   }
   if (!context.account)
-    throw new Error("No private key provided. Use --privateKey or set PRIVATE_KEY env variable.")
+    throw new Error("No mnemonic provided. Use --mnemonic or set MNEMONIC env variable.")
 
   global.context = context;
 }
@@ -118,7 +120,8 @@ let result = await yargs(process.argv.slice(2))
 for (const command of Object.values(commands)) {
   const entrypoint = async (argv) => {
     argv = await argv;
-    await load_context(argv);
+    if (!argv.length || argv[0] !== "account" || argv[1] !== "new")
+      await load_context(argv);
     try {
       await command.entrypoint(argv);
       process.exit(0);

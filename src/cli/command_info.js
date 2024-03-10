@@ -7,8 +7,8 @@ export default {
   description: "snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries.",
   optional_args: [
     {
-      name: "privateKey",
-      description: "Aleo private key, used for signing transactions.",
+      name: "mnemonic",
+      description: "Mnemonic seed phrase of your snarkDB account.",
       type: "string",
     },
     {

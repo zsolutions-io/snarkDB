@@ -112,7 +112,7 @@ const entrypoint = async (args) => {
       queryId == null
     )
       return console.log(result_help);
-    return await request_result(queryId);
+    return await retrieve_query_result(queryId);
   }
   if (subcommand === execute_name) {
     const {

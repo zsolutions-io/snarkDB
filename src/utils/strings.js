@@ -8,6 +8,11 @@ export const hexToBytes = (hex) => {
   return bytes;
 };
 
+export const bytesToHex = (byteArray) => (
+  Array.from(byteArray, function (byte) {
+    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+  }).join('')
+);
 
 export const remove_comments = (string) => {
   return string.replace(/\/\*[\s\S]*?\*\/|(?<=[^:])\/\/.*|^\/\/.*/g, '').trim();
