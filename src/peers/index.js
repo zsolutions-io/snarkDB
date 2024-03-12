@@ -41,7 +41,7 @@ export async function list_peers() {
 }
 
 
-export async function add_peer(identifier, location, overwrite) {
+export async function add_peer(identifier, snarkdb_id, host, port, overwrite) {
   throw_invalid_identifier(identifier);
   const peer_settings = { location };
 

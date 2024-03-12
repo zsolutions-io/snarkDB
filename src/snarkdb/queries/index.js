@@ -54,7 +54,7 @@ const execute_parsed_query = async (query) => {
     if (query.keyword === "database")
       throw Error(
         "A database is an Aleo account. "
-        + "Create one by using 'snarkos account new'"
+        + "Create one by using 'snarkos account new'."
       );
     throw Error(`Unsupported 'create' query: '${query.keyword}'.`);
   }

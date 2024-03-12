@@ -20,6 +20,7 @@
   "dependencies": {
     "@aleohq/sdk": "^0.6.9",
     "@aleohq/wasm": "^0.6.9",
+    "@chainsafe/libp2p-gossipsub": "^13.0.0",
     "@chainsafe/libp2p-noise": "^15.0.0",
     "@chainsafe/libp2p-yamux": "^6.0.2",
     "@helia/mfs": "^3.0.1",
@@ -34,6 +35,7 @@
     "bigint-crypto-utils": "^2.5.3",
     "bip39": "^3.1.0",
     "blockstore-fs": "^1.1.10",
+    "bs58": "^5.0.0",
     "colors": "^1.4.0",
     "crypto-shuffle": "^1.0.1",
     "datastore-fs": "^9.1.8",

@@ -76,11 +76,11 @@ export async function sync_tables() {
   for (const table of tables) {
     try {
       await table.sync();
-      await table.close();
     } catch (e) {
       console.log(`Error processing table '${table.name}':`);
       console.log(e);
     }
+    await table.close();
   }
 }
 
