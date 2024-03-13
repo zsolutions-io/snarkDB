@@ -11,7 +11,7 @@ const add_pattern = `${name} ${add_name} [OPTIONS]`;
 const add_description = `Create a new snarkdb account.`;
 const add_help = get_help_message(null, add_pattern, add_description, add_args);
 
-const remove_name = "check";
+const remove_name = "test";
 const remove_args = [];
 const remove_pattern = `${name} ${remove_name} [OPTIONS]`;
 const remove_description = `Reveal active account informations.`;
@@ -56,15 +56,20 @@ const account_new = async () => {
   display_account(snarkdb);
 };
 
-const display_account = ({ account, ipfs, mnemonic }) => {
+const display_account = ({ account, ipfs, mnemonic, snarkdb_id }) => {
   console.log();
-  console.log(`     Mnemonic`.bold.cyan + `\t${mnemonic}`);
+  console.log(`  SnarkDB`.bold.yellow);
+  console.log(`    Mnemonic\n`.bold.cyan + `      ${mnemonic}`);
+  console.log(`    SnarkDB Id\n`.bold.cyan + `      ${String(snarkdb_id)}`);
   console.log();
-  console.log(`      Peer Id`.bold.cyan + `\t${String(ipfs)}`);
+  console.log(`  IPFS`.bold.yellow);
+  console.log(`    Peer Id\n`.bold.cyan + `      ${String(ipfs.peerId)}`);
+  console.log(`    Pirivate Key\n`.bold.cyan + `      ${String(ipfs.privateKey)}`);
   console.log();
-  console.log(`  Private Key`.bold.cyan + `\t${account.privateKey().to_string()}`);
-  console.log(`     View Key`.bold.cyan + `\t${account.viewKey().to_string()}`);
-  console.log(`      Address`.bold.cyan + `\t${account.address().to_string()}`);
+  console.log(`  SnarkVM`.bold.yellow);
+  console.log(`    Pirivate Key\n`.bold.cyan + `      ${account.privateKey().to_string()}`);
+  console.log(`    View Key\n`.bold.cyan + `      ${account.viewKey().to_string()}`);
+  console.log(`    Address\n`.bold.cyan + `      ${account.address().to_string()}`);
   console.log();
 };
 

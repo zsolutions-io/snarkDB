@@ -39,9 +39,9 @@ const load_context = async (argv) => {
   context.endpoint = endpoint;
   try {
     const mnemonic = argv?.mnemonic ? argv.mnemonic : process.env.MNEMONIC;
-    const { account, ipfs } = mnemonic ?
+    const { account, ipfs, snarkdb_id } = mnemonic ?
       await snarkdb_account(mnemonic) :
-      { account: null, mnemonic: null, ipfs };
+      { account: null, ipfs: null, snarkdb_id: null };
     const verbosity =
       argv?.verbosity ?
         Number(argv.verbosity)
@@ -63,6 +63,7 @@ const load_context = async (argv) => {
       ...context,
       package_version,
       account,
+      snarkdb_id,
       mnemonic,
       ipfs,
       verbosity,
@@ -120,7 +121,7 @@ let result = await yargs(process.argv.slice(2))
 for (const command of Object.values(commands)) {
   const entrypoint = async (argv) => {
     argv = await argv;
-    if (!argv.length || argv[0] !== "account" || argv[1] !== "new")
+    if (!argv?._?.length || argv?._?.[0] !== "account" || argv?.SUBCOMMAND === "test")
       await load_context(argv);
     try {
       await command.entrypoint(argv);

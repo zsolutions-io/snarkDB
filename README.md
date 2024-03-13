@@ -100,6 +100,50 @@ FROM aleo103nyxgwktwavyv4l06mns6cqze3s9l6dwu7w8hvfkasrzrs4k5pscv370h.first_table
 
 ## Accounts
 
+-
+
+  SnarkDB
+    Mnemonic
+      fire enough truck lumber dice truly canoe midnight unit life flip quantum
+    SnarkDB Id
+      db1khfg47e43q476ylueukzx9t7t37ssn9v7g2ut0qtaq39afwaugrqqfqgqyfzpjqac0rjk9qqwtaq8sgq5pc7wdgw0rar6n76kwxzpertjm42rnnsl306ed
+
+  IPFS
+    Peer Id
+      12D3KooWPHY2qU2WspL3WnUXqAWkHP8UY6tWEMjjsYMTzuEME4r3
+    Pirivate Key
+      23jhTcAkwKrPYiqbxUPELzGTbcbZKbymLVC6SHviqpY9E51bGvcSJEXofcNFJiHNYvBjnRxcdJ29fWDmjHTikxyAUoTSX
+
+  SnarkVM
+    Pirivate Key
+      APrivateKey1zkp6W6AkPZ7jXUbvsuUmqL9opDvvxtR1Saok82ajQaE1KL1
+    View Key
+      AViewKey1eDB5kB7yyCgcY45vnNAf7DFEpRHyK9UkdRR7ZLTYMN5Q
+    Address
+      aleo1khfg47e43q476ylueukzx9t7t37ssn9v7g2ut0qtaq39afwaugrqsfg0w6
+
+-
+
+  SnarkDB
+    Mnemonic
+      misery tape betray sunset light barely slush mind juice crowd awake art
+    SnarkDB Id
+      db1wmn963nrnu0pmjamh85snqfqa7v700hjczfnpawf757cn7cc6cpqqfqgqyfzp6jgndhj2mpl6hk6unktqwguyzz3s4dlp70g3yj60yxxrejdr3fg2tkjan
+
+  IPFS
+    Peer Id
+      12D3KooWRaunSQYH73pt2WM4EoHmsbQPwc5Ef6usiJFfutyK1y2o
+    Pirivate Key
+      23jhTbRxEwJ4erbDinAVYN7EyGyty6pRxETvKdbcyUkiKsKx3tFjpkhiu2sBN9zUM1S6cb6EmAnTNhFvH4XYk6ZQNLzTR
+
+  SnarkVM
+    Pirivate Key
+      APrivateKey1zkp41zfhD3QBjgBm2VRpJtgNgTjY7ikfoFC1jLsjRgd5E5F
+    View Key
+      AViewKey1tFQ2UvMDzwMLNm69A3ZkJStp1XUdCVLscUrrS3h3STnX
+    Address
+      aleo1wmn963nrnu0pmjamh85snqfqa7v700hjczfnpawf757cn7cc6cpqdgdfjx
+
 table2 owner :
   Private Key  APrivateKey1zkp8ynLk3wcRb4XzZ3C72mnt5fe8bNcpJ9MVxuBH4kqcvVf
       Address  aleo15wktn0yr8vhxfzh9td7zhnrge9u6hra8tg4qtv2p9dumwc9mwgzqq63rlg

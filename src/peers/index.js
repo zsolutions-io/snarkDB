@@ -4,6 +4,8 @@ import { save_object } from "utils/fs.js";
 import fs from "fs/promises";
 import fsExists from 'fs.promises.exists'
 
+import { snarkdb_id_to_addresses } from 'snarkdb/accounts/index.js';
+
 
 const config_file_name = 'config';
 
@@ -41,12 +43,10 @@ export async function list_peers() {
 }
 
 
-export async function add_peer(identifier, snarkdb_id, host, port, overwrite) {
+export async function add_peer(identifier, snarkdb_id, overwrite) {
   throw_invalid_identifier(identifier);
-  const peer_settings = { location };
-
-  //const peer = new peer(peer_settings);
-  //await peer.initialize();
+  const { aleo_address, ipfs_peer_id } = snarkdb_id_to_addresses(snarkdb_id);
+  const peer_settings = { snarkdb_id, aleo_address, ipfs_peer_id };
   const peer_path = get_peer_dir(identifier);
   await save_object(
     peer_path, config_file_name, peer_settings, !overwrite
@@ -67,7 +67,7 @@ export async function remove_peer(identifier) {
 
 
 const throw_invalid_identifier = (identifier) => {
-  const regex = /^[a-zA-Z_0-9\-]+$/;
+  const regex = /^[a-zA-Z_0-9]+$/;
   if (!regex.test(identifier)) {
     throw new Error(
       'Identifier should only contain letters numbers,'

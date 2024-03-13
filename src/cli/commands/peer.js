@@ -12,13 +12,13 @@ const name = "peer";
 const add_name = "add";
 const add_args = [
   {
-    name: "location",
-    description: "p2plib peer address, like /ip4/127.0.0.1/tcp/3020/p2p/12D3KooWR4zib514EKNTqoCcu5AbASSjsnt6QPnxtVUZpbYJVZUj",
+    name: "identifier",
+    description: "Local unique identifier of the peer.",
     required: true,
   },
   {
-    name: "identifier",
-    description: "Local unique identifier of the peer.",
+    name: "snarkdbId",
+    description: "Peer Snarkdb ID begining with 'db1'.",
     required: true,
   },
   {
@@ -74,10 +74,10 @@ const entrypoint = async (args) => {
   if (subcommand === list_name) {
     return await list_peers();
   } else if (subcommand === add_name) {
-    const { identifier, location, overwrite } = args;
-    if (identifier == null || location == null)
+    const { identifier, snarkdbId, overwrite } = args;
+    if (identifier == null || snarkdbId == null)
       return console.log(add_help);
-    return await add_peer(identifier, location, overwrite);
+    return await add_peer(identifier, snarkdbId, overwrite);
   } else if (subcommand === remove_name) {
     const { identifier } = args;
     if (identifier == null)
