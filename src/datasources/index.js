@@ -70,7 +70,7 @@ export async function remove_datasource(identifier) {
 
 
 const throw_invalid_identifier = (identifier) => {
-  const regex = /^[a-zA-Z_0-9\-]+$/;
+  const regex = /^[a-zA-Z_]+[a-zA-Z_0-9]*$/;
   if (!regex.test(identifier)) {
     throw new Error(
       'Identifier should only contain letters numbers,'
