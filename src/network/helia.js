@@ -1,16 +1,21 @@
-import { noise } from '@chainsafe/libp2p-noise';
-import { yamux } from '@chainsafe/libp2p-yamux';
-import { bootstrap } from '@libp2p/bootstrap';
-import { identify } from '@libp2p/identify';
-import { tcp } from '@libp2p/tcp';
+
+
 import { FsBlockstore } from 'blockstore-fs';
 import { FsDatastore } from 'datastore-fs';
-import { createHelia } from 'helia';
-import { createLibp2p } from 'libp2p';
+import { MemoryDatastore } from 'datastore-core';
+import { MemoryBlockstore } from 'blockstore-core';
 
-import { mfs } from '@helia/mfs';
+import { createHelia, libp2pDefaults } from 'helia';
+
+
+import { gossipsub } from '@chainsafe/libp2p-gossipsub';
+
+
+import { unixfs, globSource } from '@helia/unixfs';
 import { get_ipfs_storage_path } from "snarkdb/db/index.js";
 
+import fs from 'fs/promises';
+import fsExists from 'fs.promises.exists';
 
 export async function init_ipfs_node(address, peerId) {
   const storage_path = get_ipfs_storage_path(address);
@@ -19,43 +24,100 @@ export async function init_ipfs_node(address, peerId) {
   const datastore = new FsDatastore(datastore_path);
   const blockstore = new FsBlockstore(blockstore_path);
 
-  const libp2p = await createLibp2p({
-    peerId,
-    datastore,
-    addresses: {
-      listen: [
-        `/ip4/127.0.0.1/tcp/${process.env.SNARKDB_PORT}` //'/ip4/127.0.0.1/tcp/0'
-      ]
-    },
-    transports: [
-      tcp()
-    ],
-    connectionEncryption: [
-      noise()
-    ],
-    streamMuxers: [
-      yamux()
-    ],
-    peerDiscovery: [
-      bootstrap({
-        list: [
-          '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
-          '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
-          '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb',
-          '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt'
-        ]
-      })
-    ],
-    services: {
-      identify: identify()
-    }
-  });
+  const libp2p = libp2pDefaults({ peerId: peerId });
+  libp2p.addresses.listen = ['/ip4/0.0.0.0/tcp/3027'];
+  libp2p.services.pubsub = gossipsub();
+  libp2p.datastore = datastore;
 
   return await createHelia({
     datastore,
     blockstore,
     libp2p
   });
+}
+
+
+export async function init_offline_node() {
+  const blockstore = new MemoryBlockstore()
+  const datastore = new MemoryDatastore()
+  const libp2p = libp2pDefaults()
+  return await createHelia({
+    datastore,
+    blockstore,
+    libp2p,
+    start: false,
+  });
+}
+
+
+export async function compute_cid(path) {
+  if (!await fsExists(path)) {
+    return null;
+  }
+  const node = await init_offline_node();
+  const unixfs_fs = unixfs(node);
+  const is_file = (await fs.lstat(path)).isFile();
+  let cid = null;
+  if (is_file) {
+    const pathParts = path.split('/');
+    const filename = pathParts.pop();
+    const dirname = pathParts.join('/');
+    for await (const entry of unixfs_fs.addAll(globSource(dirname, filename))) {
+      if (entry.path === '/' + filename) {
+        cid = entry.cid.toString();
+        break;
+      }
+    }
+  } else {
+    if (!path.endsWith('/')) {
+      path = path + '/';
+    }
+    for await (const entry of unixfs_fs.addAll(globSource(path, '**'))) {
+      if (entry.path === '') {
+        cid = entry.cid.toString();
+        break;
+      }
+    }
+  }
+  return cid;
+}
+
+
+export const get_all_remote_files = async (ipfs_fs, path, files) => {
+  files = files || [];
+  if (!path.startsWith('/')) {
+    path = '/' + path;
+  }
+  if (!path.endsWith('/')) {
+    path = path + '/';
+  }
+  for await (const file of ipfs_fs.ls(path)) {
+    files.push(file);
+    file.path = path + file.name;
+    file.path = file.path.slice(1);
+    if (file.type === 'directory') {
+      await get_all_remote_files(ipfs_fs, file.path, files);
+    }
+  }
+  return { files, cid: ipfs_fs.root.toString() };
+}
+
+
+export const get_all_local_files = async (path) => {
+  const files = [];
+  const node = await init_offline_node();
+  const unixfs_fs = unixfs(node);
+  let cid = null;
+  if (!path.endsWith('/')) {
+    path = path + '/';
+  }
+  for await (const entry of unixfs_fs.addAll(globSource(path, '**'))) {
+    if (entry.path === '') {
+      cid = entry.cid.toString();
+    }
+    files.push(entry);
+  }
+  return { files, cid };
 }
 
 
@@ -67,9 +129,7 @@ const fs = mfs(node)
 const encoder = new TextEncoder()
 const dir = await fs.mkdir('/test-dir')
 console.log({ dir })
-const file = await fs.writeBytes(
-  encoder.encode('Hey there !'), '/test-dir/foo.txt'
-)
+const file = await fs.writeBytes(encoder.encode('Hey there ! zefzef'), '/test2/test3/foo.txt')
 console.log({ file })
 
 const decoder = new TextDecoder()

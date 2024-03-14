@@ -1,11 +1,25 @@
 # snarkDB
 
-snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases as private set intersection, proof of data origin/processing, and more.
+snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases such as private set intersection, proof of data origin or proof of conform processing.
 
 ## Install
 
 ```bash
 npm install
+```
+
+## Getting started
+
+Generate your mnemonic:
+
+```bash
+node . account new | sed -n '4p' | sed 's/^.\{16\}//' | awk '{print "MNEMONIC="$0}' > .env.local
+```
+
+Verify it was generated correctly:
+
+```bash
+node . account test
 ```
 
 ## Datasources
@@ -33,39 +47,6 @@ Supported RDBMS are:
 - capacitor
 
 For more information, see [typeorm datasources documentation](https://github.com/typeorm/typeorm/blob/master/docs/data-source-options.md#what-is-datasourceoptions).
-
-## Environment variables
-
-Duplicate `.env.local.example` file and rename it to `.env.local`.
-Update it with your own Aleo private key.
-
-## Create Table
-
-```bash
-snarkdb execute "\
-CREATE TABLE table2 \
-(
-    col_2_1 INT,
-    col_2_2 INT,
-    col_2_3 BOOLEAN
-)
-"
-```
-
-## Insert row
-
-```bash
-node . execute "\
-INSERT INTO table2 \
-  (col_2_1, col_2_2, col_2_3) \
-VALUES \
-  (\
-    1,\
-    123,\
-    true
-  )\
-"
-```
 
 ## Select request
 

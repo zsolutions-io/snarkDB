@@ -1,6 +1,7 @@
 const { noise } = await import('@chainsafe/libp2p-noise')
 const { yamux } = await import('@chainsafe/libp2p-yamux')
-const { unixfs } = await import('@helia/unixfs')
+const fsExists = await import('fs.promises.exists')
+const fs = await import('fs/promises')
 const { bootstrap } = await import('@libp2p/bootstrap')
 const { identifyService } = await import('@libp2p/identify')
 
@@ -18,6 +19,7 @@ const { gossipsub } = await import('@chainsafe/libp2p-gossipsub')
 const { peerIdFromString } = await import('@libp2p/peer-id')
 const { pubsub, helia, } = await import('@helia/ipns/routing')
 const { mfs } = await import('@helia/mfs')
+const { unixfs, globSource } = await import('@helia/unixfs')
 const { mplex } = await import('@libp2p/mplex');
 
 //const { webRTC, webRTCDirect } = await import (  '@libp2p/webrtc')
@@ -50,8 +52,16 @@ async function createNode() {
     datastore,
     blockstore,
     libp2p
-  })
+  });
 }
+
+
+const node = await createHelia({
+  datastore,
+  blockstore,
+  libp2p,
+  start: false
+});
 
 
 
@@ -60,7 +70,7 @@ await new Promise((resolve) => setTimeout(resolve, 2000));
 node1.libp2p.getPeers();
 
 
-const fs = mfs(node1);
+const fs1 = mfs(node1);
 
 
 const encoder = new TextEncoder()
@@ -85,3 +95,86 @@ console.log(node1.libp2p.getMultiaddrs()[0]);
 
 //await fs.writeBytes(encoder.encode('Hello World 302'), '/hello2.txt')
 //await name1.publish(node1.libp2p.peerId, fs.root)
+
+for await (const file of fs1.ls("/")) {
+  console.log(file);
+}
+
+
+async function init_offline_node() {
+  const blockstore = new MemoryBlockstore()
+  const datastore = new MemoryDatastore()
+  const libp2p = libp2pDefaults()
+  return await createHelia({
+    datastore,
+    blockstore,
+    libp2p,
+    start: false,
+  });
+}
+
+
+async function compute_cid(path) {
+  if (!await fsExists(path)) {
+    return null;
+  }
+  const node = await init_offline_node();
+  const unixfs_fs = unixfs(node);
+  const is_file = (await fs.lstat(path)).isFile();
+  let cid = null;
+  if (is_file) {
+    const pathParts = path.split('/');
+    const filename = pathParts.pop();
+    const dirname = pathParts.join('/');
+    for await (const entry of unixfs_fs.addAll(globSource(dirname, filename))) {
+      if (entry.path === '/' + filename) {
+        cid = entry.cid.toString();
+        break;
+      }
+    }
+  } else {
+    for await (const entry of unixfs_fs.addAll(globSource(path, '**'))) {
+      if (entry.path === '') {
+        cid = entry.cid.toString();
+        break;
+      }
+    }
+  }
+  return cid;
+}
+
+
+
+
+for await (const file of fs1.ls("/")) {
+  console.log(file);
+}
+
+const g
+
+
+et_all_files = async (path, files) => {
+  files = files || [];
+  if (!path.startsWith('/')) {
+    path = '/' + path;
+  }
+  if (!path.endsWith('/')) {
+    path = path + '/';
+  }
+  console.log({ path });
+  for await (const file of fs1.ls(path)) {
+    files.push(file);
+    console.log(file);
+
+    file.path = path + file.name;
+    file.path = file.path.slice(1);
+    if (file.type === 'directory') {
+      const base = path.endsWith('/') ? path.slice(0, path.length - 1) : path;
+      await et_all_files(file.path, files);
+    }
+  }
+  return files;
+}
+await et_all_files("/")
+
+

@@ -17,26 +17,35 @@ import {
 import fs from 'fs/promises';
 import {
   get_queries_dir,
+  get_database_tables_dir,
 } from "snarkdb/db/index.js";
 
-import { mfs } from '@helia/mfs';
 
-import { init_ipfs_node } from "network/helia.js";
+import {
+  init_ipfs_node,
+  compute_cid,
+  get_all_local_files,
+  get_all_remote_files,
+} from "network/helia.js";
+import { ipns } from '@helia/ipns';
+import { pubsub, helia, } from '@helia/ipns/routing';
+import { mfs, } from '@helia/mfs';
 
 const period = 60 * 1000;
 
 
 export async function continuous_sync() {
   await initThreadPool();
-  const { node, fs, location } = await init_ipfs();
+  const { node, ipfs_fs, location, ipns } = await init_ipfs();
   console.log();
   console.log(`IPFS node is up, available at:\n${String(location).bold.green}`);
   console.log();
   console.log("Starting syncronisation...");
   await Promise.all(
     [
-      continuous_tables_sync(),
-      continuous_queries_sync(),
+      //continuous_tables_sync(),
+      //continuous_queries_sync(),
+      //continuous_public_dir_sync(node, ipfs_fs, ipns),
     ]
   );
 }
@@ -45,12 +54,22 @@ export async function continuous_sync() {
 export async function init_ipfs() {
   const node = await init_ipfs_node(
     global.context.account.address().to_string(),
-    global.context.ipfs,
+    global.context.ipfs.peerId,
   );
-  const fs = mfs(node);
+  const ipfs_fs = mfs(node);
   const location = node.libp2p.getMultiaddrs()[0];
-  return { node, fs, location };
+
+  const name_pubsub = ipns(node, {
+    routers: [
+      helia(node),
+      pubsub(node),
+    ]
+  })
+  const name = ipns(node)
+
+  return { node, ipfs_fs, location, ipns: { pubsub: name_pubsub, default: name } };
 }
+
 
 export async function continuous_tables_sync() {
   while (true) {
@@ -58,6 +77,7 @@ export async function continuous_tables_sync() {
     await new Promise((resolve) => setTimeout(resolve, period));
   }
 }
+
 
 export async function continuous_queries_sync() {
   while (true) {
@@ -86,7 +106,7 @@ export async function sync_tables() {
 
 
 export async function sync_queries() {
-  const query_ids = await fs.readdir(get_queries_dir(true));
+  const query_ids = await fdirectory.readdir(get_queries_dir(true));
   const address = global.context.account.address().to_string();
   const view_key = global.context.account.viewKey();
   for (const query_id of query_ids) {
@@ -114,3 +134,119 @@ export async function sync_queries() {
     }
   }
 }
+
+
+export async function continuous_public_dir_sync(node, ipfs_fs, ipns) {
+  while (true) {
+    await sync_public_dir(node, ipfs_fs, ipns);
+    await new Promise((resolve) => setTimeout(resolve, period));
+  }
+}
+
+export async function sync_public_dir(node, ipfs_fs, ipns) {
+  await sync_public_dir_tables(node, ipfs_fs, ipns);
+  // await publish_ipns(node, ipfs_fs, ipns);
+}
+
+
+export async function sync_public_dir_tables(node, ipfs_fs, ipns) {
+  const address = global.context.account.address().to_string();
+  const database_tables_dir = get_database_tables_dir(address, true);
+
+  const remote_tables_path = "/tables";
+  try {
+    await ipfs_fs.stat(remote_tables_path);
+  } catch (e) {
+    if (e.code === "ERR_DOES_NOT_EXIST") {
+      await ipfs_fs.mkdir(remote_tables_path);
+    }
+  }
+  const updated = await sync_local_to_remote(
+    database_tables_dir, remote_tables_path, ipfs_fs
+  );
+  //console.log({ cid: await compute_cid('/home/palong/solana_shoes/dev') });
+  if (updated)
+    await publish_ipns(node, ipfs_fs, ipns);
+}
+
+
+async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
+  const local = await get_all_local_files(local_dir_path);
+  local.files.forEach((f) => {
+    f.path_compared = "tables/" + f.path;
+  });
+  const remote = await get_all_remote_files(ipfs_fs, remote_path)
+  if (local.cid.toString() === remote.cid.toString()) {
+    return;
+  }
+  const to_add = local.files.filter((file) => {
+    const remote_file = remote.files.find((f) => f.path === file.path_compared);
+    if (remote_file === undefined) {
+      return true;
+    }
+    return remote_file.cid.toString() !== file.cid.toString();
+  });
+  const to_remove = remote.files.filter((file) => {
+    const local_file = local.files.find((f) => f.path_compared === file.path);
+    if (local_file === undefined) {
+      return true;
+    }
+    return local_file.cid.toString() !== file.cid.toString();
+  });
+  to_remove.sort((a, b) => a.path.length - b.path.length);
+  to_add.sort((a, b) => a.path.length - b.path.length);
+
+  if (to_add.length === 0 && to_remove.length === 0) {
+    return;
+  }
+
+  for (const file of to_remove) {
+    try {
+      await ipfs_fs.rm("/" + file.path, { force: true });
+    } catch (e) { }
+  }
+
+  for (const file of to_add) {
+    try {
+      if (file.unixfs !== undefined) {
+        await ipfs_fs.mkdir("/" + file.path_compared);
+      } else {
+        const file_data = await fs.readFile(
+          local_dir_path + "/" + file.path
+        );
+        await ipfs_fs.writeBytes(
+          file_data, "/" + file.path_compared
+        );
+      }
+    } catch (e) { }
+  }
+  return true;
+}
+
+
+async function publish_ipns(node, ipfs_fs, ipns) {
+  try {
+    const reps = await Promise.all([
+      (async () => {
+        try {
+          return await ipns.default.publish(node.libp2p.peerId, ipfs_fs.root);
+        } catch (e) {
+          console.log("Expected error while publishing IPNS:");
+          console.log(e);
+        }
+      })(),
+      (async () => {
+        try {
+          return await ipns.pubsub.publish(node.libp2p.peerId, ipfs_fs.root);
+        } catch (e) {
+          console.log("Expected error while publishing IPNS:");
+          console.log(e);
+        }
+      })()
+    ]);
+    const path = reps?.[0]?.value || reps?.[1]?.value;
+    if (path)
+      console.log(`IPNS published at:\n${path}`);
+  } catch (e) { }
+}
+

@@ -28,8 +28,13 @@ export const get_peer_dir = (identifier) => {
   return `${peers_dir}/${identifier}`;
 }
 
+export const get_database_tables_dir = (database, pub, temp) => {
+  return `${get_tables_dir(pub, temp)}/${database}`;
+}
+
+
 export const get_table_dir = (database, table_name, pub, temp) => {
-  return `${get_tables_dir(pub, temp)}/${database}/${table_name}`;
+  return `${get_database_tables_dir(database, pub, temp)}/${table_name}`;
 }
 
 export const get_ipfs_storage_path = (database) => {
