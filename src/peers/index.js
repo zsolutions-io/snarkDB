@@ -5,7 +5,7 @@ import fs from "fs/promises";
 import fsExists from 'fs.promises.exists'
 
 import { snarkdb_id_to_addresses } from 'snarkdb/accounts/index.js';
-
+import { multiaddr } from '@multiformats/multiaddr';
 
 const config_file_name = 'config';
 
@@ -23,6 +23,16 @@ export async function get_peer_config(identifier) {
   const config_content = await fs.readFile(config_path, 'utf8')
   return JSON.parse(config_content);
 }
+
+
+export async function connect_to_peer(node, identifier) {
+  const config = await get_peer_config(identifier);
+  const { host, port, ipfs_peer_id } = config;
+  const location = `/ip4/${host}/tcp/${port}/p2p/${ipfs_peer_id}`;
+  await node.libp2p.dial(multiaddr(location));
+  return config;
+}
+
 
 
 export async function list_peers() {
@@ -43,7 +53,7 @@ export async function list_peers() {
 }
 
 
-export async function add_peer(identifier, snarkdb_id, overwrite) {
+export async function add_peer(identifier, snarkdb_id, host, port, overwrite) {
   throw_invalid_identifier(identifier);
   const { aleo_address, ipfs_peer_id } = snarkdb_id_to_addresses(snarkdb_id);
   const peer_settings = { snarkdb_id, aleo_address, ipfs_peer_id, host, port };
@@ -76,10 +86,3 @@ const throw_invalid_identifier = (identifier) => {
   }
 }
 
-
-
-const connect_to_peer = async (location) => {
-  const node = global.context.node;
-  await node.libp2p.dial(location);
-  // snarkvm_address = ;
-}

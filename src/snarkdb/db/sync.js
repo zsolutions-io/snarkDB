@@ -6,7 +6,7 @@ import {
   get_query_private_result_data,
   save_query_private_result_data,
 } from 'snarkdb/queries/index.js';
-
+import { get_peer_dir, peers_dir } from "snarkdb/db/index.js";
 import {
   verify_query_results,
 } from 'snarkdb/queries/verify.js';
@@ -19,7 +19,7 @@ import {
   get_queries_dir,
   get_database_tables_dir,
 } from "snarkdb/db/index.js";
-
+import { connect_to_peer } from "peers/index.js";
 
 import {
   init_ipfs_node,
@@ -30,6 +30,9 @@ import {
 import { ipns } from '@helia/ipns';
 import { pubsub, helia, } from '@helia/ipns/routing';
 import { mfs, } from '@helia/mfs';
+import { peerIdFromString } from '@libp2p/peer-id';
+
+import fsExists from 'fs.promises.exists';
 
 const period = 60 * 1000;
 
@@ -45,7 +48,6 @@ export async function continuous_sync() {
     [
       continuous_tables_sync(node, ipfs_fs, ipns),
       //continuous_queries_sync(),
-      //continuous_public_dir_sync(node, ipfs_fs, ipns),
     ]
   );
 }
@@ -102,7 +104,12 @@ export async function sync_tables(node, ipfs_fs, ipns) {
     }
     await table.close();
   }
-  await sync_public_dir_tables(node, ipfs_fs, ipns);
+  try {
+    await sync_public_dir_tables(node, ipfs_fs, ipns);
+  } catch (e) {
+    console.log(`Error syncing public tables:`);
+    console.log(e);
+  }
 }
 
 
@@ -137,20 +144,14 @@ export async function sync_queries() {
 }
 
 
-export async function continuous_public_dir_sync(node, ipfs_fs, ipns) {
-  while (true) {
-    await sync_public_dir(node, ipfs_fs, ipns);
-    await new Promise((resolve) => setTimeout(resolve, period));
-  }
-}
-
-export async function sync_public_dir(node, ipfs_fs, ipns) {
-  await sync_public_dir_tables(node, ipfs_fs, ipns);
-  // await publish_ipns(node, ipfs_fs, ipns);
-}
 
 
 export async function sync_public_dir_tables(node, ipfs_fs, ipns) {
+  await sync_local_to_remote_public_dir_tables(node, ipfs_fs, ipns);
+  await remote_to_local_public_dir_tables(node, ipfs_fs, ipns);
+}
+
+export async function sync_local_to_remote_public_dir_tables(node, ipfs_fs, ipns) {
   const address = global.context.account.address().to_string();
   const database_tables_dir = get_database_tables_dir(address, true);
 
@@ -170,6 +171,31 @@ export async function sync_public_dir_tables(node, ipfs_fs, ipns) {
     await publish_ipns(node, ipfs_fs, ipns);
 }
 
+
+export async function remote_to_local_public_dir_tables(node, ipfs_fs, ipns) {
+  const peers = await fs.readdir(peers_dir);
+  for (const identifier of peers) {
+    const {
+      snarkdb_id, aleo_address, ipfs_peer_id, host, port
+    } = await connect_to_peer(node, identifier)
+    const database_tables_dir = get_database_tables_dir(aleo_address, true);
+    const remote = await ipns.pubsub.resolve(peerIdFromString(ipfs_peer_id));
+    const remote_tables_path = remote.cid.toString() + "/tables";
+
+    if (!await fsExists(database_tables_dir)) {
+      await fs.mkdir(database_tables_dir);
+    }
+    await sync_remote_to_local(
+      remote_tables_path, database_tables_dir, ipfs_fs.unixfs
+    );
+  }
+}
+
+async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
+  for await (const entry of ipfs_fs.ls(remote_path)) {
+    //console.log(entry)
+  }
+}
 
 async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   const local = await get_all_local_files(local_dir_path);
@@ -195,16 +221,23 @@ async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
     }
     return remote_file.cid.toString() !== file.cid.toString();
   });
-  const to_remove = remote.files.filter((file) => {
-    const local_file = local.files.find((f) => f.path_compared === file.path);
-    if (local_file === undefined) {
-      return true;
-    }
-    return local_file.cid.toString() !== file.cid.toString();
-  });
+  const to_remove = remote.files
+    .filter((file) => {
+      const local_file = local.files.find((f) => f.path_compared === file.path);
+      return (
+        (
+          local_file === undefined
+          || local_file.cid.toString() !== file.cid.toString()
+        )
+        && (
+          file.type !== "directory"
+          || to_add.every((f) => !f.path.startsWith(file.path_compared + "/"))
+        )
+      );
+    });
   to_remove.sort((a, b) => a.path.length - b.path.length);
   to_add.sort((a, b) => a.path.length - b.path.length);
-
+  console.log({ to_add, to_remove })
   if (to_add.length === 0 && to_remove.length === 0) {
     return;
   }
