@@ -155,12 +155,11 @@ export async function sync_queries() {
 }
 
 
-
-
 export async function sync_public_dir_tables(node, ipfs_fs, ipns) {
   await sync_local_to_remote_public_dir_tables(node, ipfs_fs, ipns);
   await remote_to_local_public_dir_tables(node, ipfs_fs, ipns);
 }
+
 
 export async function sync_local_to_remote_public_dir_tables(node, ipfs_fs, ipns) {
   const address = global.context.account.address().to_string();
@@ -206,10 +205,65 @@ export async function remote_to_local_public_dir_tables(node, ipfs_fs, ipns) {
 }
 
 async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
-  for await (const entry of ipfs_fs.ls(remote_path)) {
-    //console.log(entry)
+  const remote = await get_all_remote_files(ipfs_fs, remote_path);
+  const local = await get_all_local_files(local_dir_path);
+  if (remote_path.endsWith('/')) {
+    remote_path = remote_path.slice(0, -1);
+  }
+  local.files.forEach((f) => {
+    f.path_compared = remote_path + "/" + f.path;
+  });
+
+  const to_add = remote.files.filter((file) => {
+    const local_file = local.files.find((f) => f.path_compared === file.path);
+    if (local_file === undefined) {
+      return true;
+    }
+    return local_file.cid.toString() !== file.cid.toString();
+  });
+  const to_remove = local.files
+    .filter((file) => {
+      const remote_file = remote.files.find((f) => f.path === file.path_compared);
+      return (
+        (
+          remote_file === undefined
+          || remote_file.cid.toString() !== file.cid.toString()
+        )
+        && (
+          file.unixfs !== undefined
+          || to_add.every((f) => !f.path.startsWith(file.path_compared + "/"))
+        )
+      );
+    });
+  to_remove.sort((a, b) => a.path.length - b.path.length);
+  to_add.sort((a, b) => a.path.length - b.path.length);
+  console.log({ to_add, to_remove })
+
+  for (const file of to_remove) {
+    try {
+      console.log("RM", file.path)
+      //await fs.rm("/" + file.path, { recursive: true });
+    } catch (e) { }
+  }
+  for (const file of to_add) {
+    const path_to_add = local_dir_path + file.path.slice(remote_path.length);
+    try {
+      if (file.type === "directory") {
+        await fs.mkdir(path_to_add, { recursive: true });
+      } else {
+        for await (const file_data of file.content()) {
+          await fs.appendFile(
+            path_to_add, file_data
+          );
+        }
+      }
+    } catch (e) {
+      console.log(e)
+    }
   }
 }
+
+
 
 async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   const local = await get_all_local_files(local_dir_path);
