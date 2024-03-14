@@ -231,7 +231,7 @@ async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
         )
         && (
           file.type !== "directory"
-          || to_add.every((f) => !f.path.startsWith(file.path_compared + "/"))
+          || to_add.every((f) => !f.path_compared.startsWith(file.path + "/"))
         )
       );
     });
