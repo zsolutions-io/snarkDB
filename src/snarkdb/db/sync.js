@@ -173,7 +173,10 @@ export async function sync_local_to_remote_public_dir_tables(node, ipfs_fs, ipns
 
 
 export async function remote_to_local_public_dir_tables(node, ipfs_fs, ipns) {
-  const peers = await fs.readdir(peers_dir);
+  let peers = [];
+  try {
+    peers = await fs.readdir(peers_dir);
+  } catch (e) { }
   for (const identifier of peers) {
     const {
       snarkdb_id, aleo_address, ipfs_peer_id, host, port
@@ -237,8 +240,6 @@ async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
     });
   to_remove.sort((a, b) => a.path.length - b.path.length);
   to_add.sort((a, b) => a.path.length - b.path.length);
-
-  console.log({ to_add, to_remove });
 
   if (to_add.length === 0 && to_remove.length === 0) {
     return;
