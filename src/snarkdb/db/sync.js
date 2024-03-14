@@ -44,6 +44,17 @@ export async function continuous_sync() {
   console.log(`IPFS node is up, available at:\n${String(location).bold.green}`);
   console.log();
   console.log("Starting syncronisation...");
+
+  process
+    .on('unhandledRejection', (reason, p) => {
+      console.error(reason, 'Unhandled Rejection at Promise', p);
+    })
+    .on('uncaughtException', err => {
+      console.error(err, 'Uncaught Exception thrown');
+      process.exit(1);
+    });
+
+
   await Promise.all(
     [
       continuous_tables_sync(node, ipfs_fs, ipns),
@@ -105,7 +116,6 @@ export async function sync_tables(node, ipfs_fs, ipns) {
     await table.close();
   }
   try {
-    console.log("sync_public_dir_tables")
     await sync_public_dir_tables(node, ipfs_fs, ipns);
   } catch (e) {
     console.log(`Error syncing public tables:`);
