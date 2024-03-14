@@ -46,7 +46,7 @@ export async function list_peers() {
 export async function add_peer(identifier, snarkdb_id, overwrite) {
   throw_invalid_identifier(identifier);
   const { aleo_address, ipfs_peer_id } = snarkdb_id_to_addresses(snarkdb_id);
-  const peer_settings = { snarkdb_id, aleo_address, ipfs_peer_id };
+  const peer_settings = { snarkdb_id, aleo_address, ipfs_peer_id, host, port };
   const peer_path = get_peer_dir(identifier);
   await save_object(
     peer_path, config_file_name, peer_settings, !overwrite

@@ -22,10 +22,20 @@ const add_args = [
     required: true,
   },
   {
+    name: "host",
+    description: "Host of the peer.",
+    required: true,
+  },
+  {
+    name: "port",
+    description: "Port of the peer.",
+    required: true,
+  },
+  {
     name: "overwrite",
     description: "Overwrite if a peer with that identifier already exists.",
     required: false,
-  }
+  },
 ];
 const add_pattern = `${name} ${add_name} [OPTIONS]`;
 const add_description = `Add a new peer.`;
@@ -74,10 +84,10 @@ const entrypoint = async (args) => {
   if (subcommand === list_name) {
     return await list_peers();
   } else if (subcommand === add_name) {
-    const { identifier, snarkdbId, overwrite } = args;
+    const { identifier, snarkdbId, host, port, overwrite } = args;
     if (identifier == null || snarkdbId == null)
       return console.log(add_help);
-    return await add_peer(identifier, snarkdbId, overwrite);
+    return await add_peer(identifier, snarkdbId, host, port, overwrite);
   } else if (subcommand === remove_name) {
     const { identifier } = args;
     if (identifier == null)

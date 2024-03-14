@@ -239,18 +239,12 @@ async function publish_ipns(node, ipfs_fs, ipns) {
       (async () => {
         try {
           return await ipns.default.publish(node.libp2p.peerId, ipfs_fs.root);
-        } catch (e) {
-          console.log("Expected error while publishing IPNS:");
-          console.log(e);
-        }
+        } catch (e) { }
       })(),
       (async () => {
         try {
           return await ipns.pubsub.publish(node.libp2p.peerId, ipfs_fs.root);
-        } catch (e) {
-          console.log("Expected error while publishing IPNS:");
-          console.log(e);
-        }
+        } catch (e) { }
       })()
     ]);
     const path = reps?.[0]?.value || reps?.[1]?.value;
