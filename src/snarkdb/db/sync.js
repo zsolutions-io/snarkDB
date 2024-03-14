@@ -105,6 +105,7 @@ export async function sync_tables(node, ipfs_fs, ipns) {
     await table.close();
   }
   try {
+    console.log("sync_public_dir_tables")
     await sync_public_dir_tables(node, ipfs_fs, ipns);
   } catch (e) {
     console.log(`Error syncing public tables:`);

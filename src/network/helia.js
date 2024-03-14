@@ -25,7 +25,7 @@ export async function init_ipfs_node(address, peerId) {
   const blockstore = new FsBlockstore(blockstore_path);
 
   const libp2p = libp2pDefaults({ peerId: peerId });
-  libp2p.addresses.listen[0] = ['/ip4/0.0.0.0/tcp/3027'];
+  libp2p.addresses.listen = ['/ip4/0.0.0.0/tcp/3027'];
   libp2p.services.pubsub = gossipsub();
   libp2p.datastore = datastore;
 
