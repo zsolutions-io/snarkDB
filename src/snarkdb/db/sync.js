@@ -43,7 +43,7 @@ export async function continuous_sync() {
   console.log("Starting syncronisation...");
   await Promise.all(
     [
-      //continuous_tables_sync(),
+      continuous_tables_sync(node, ipfs_fs, ipns),
       //continuous_queries_sync(),
       //continuous_public_dir_sync(node, ipfs_fs, ipns),
     ]
@@ -71,9 +71,9 @@ export async function init_ipfs() {
 }
 
 
-export async function continuous_tables_sync() {
+export async function continuous_tables_sync(node, ipfs_fs, ipns) {
   while (true) {
-    await sync_tables();
+    await sync_tables(node, ipfs_fs, ipns);
     await new Promise((resolve) => setTimeout(resolve, period));
   }
 }
@@ -87,7 +87,7 @@ export async function continuous_queries_sync() {
 }
 
 
-export async function sync_tables() {
+export async function sync_tables(node, ipfs_fs, ipns) {
   const address = global.context.account.address().to_string();
   const tables = await get_address_tables(address);
   if (tables.length === 0) {
@@ -102,6 +102,7 @@ export async function sync_tables() {
     }
     await table.close();
   }
+  await sync_public_dir_tables(node, ipfs_fs, ipns);
 }
 
 
@@ -172,11 +173,19 @@ export async function sync_public_dir_tables(node, ipfs_fs, ipns) {
 
 async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   const local = await get_all_local_files(local_dir_path);
+  if (!remote_path.startsWith('/')) {
+    remote_path = '/' + remote_path;
+  }
+  if (remote_path.endsWith('/')) {
+    remote_path = remote_path.slice(0, -1);
+  }
   local.files.forEach((f) => {
-    f.path_compared = "tables/" + f.path;
+    f.path_compared = remote_path.slice(1) + "/" + f.path;
   });
   const remote = await get_all_remote_files(ipfs_fs, remote_path)
-  if (local.cid.toString() === remote.cid.toString()) {
+  const local_cid = local.cid?.toString == null ? null : local.cid.toString();
+  const remote_cid = remote.cid?.toString == null ? null : remote.cid.toString();
+  if (local_cid === remote_cid) {
     return;
   }
   const to_add = local.files.filter((file) => {
