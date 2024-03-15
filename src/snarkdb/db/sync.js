@@ -21,6 +21,10 @@ import {
 } from "snarkdb/db/index.js";
 import { connect_to_peer } from "peers/index.js";
 
+import { remove_commit } from "snarkdb/db/commit.js";
+
+import { table_get_outdated_commits } from "snarkdb/sql/table.js";
+
 import {
   init_ipfs_node,
   compute_cid,
@@ -109,6 +113,12 @@ export async function sync_tables(node, ipfs_fs, ipns) {
   for (const table of tables) {
     try {
       await table.sync();
+      const outdated = await table_get_outdated_commits(
+        table.database, table.name
+      );
+      for (const commit of outdated) {
+        await remove_commit(table.database, table.name, commit.id, true);
+      }
     } catch (e) {
       console.log(`Error processing table '${table.name}':`);
       console.log(e);
@@ -176,9 +186,9 @@ export async function sync_local_to_remote_public_dir_tables(node, ipfs_fs, ipns
   const updated = await sync_local_to_remote(
     database_tables_dir, remote_tables_path, ipfs_fs
   );
-  //console.log({ cid: await compute_cid('/home/palong/solana_shoes/dev') });
-  if (updated)
+  if (updated) {
     await publish_ipns(node, ipfs_fs, ipns);
+  }
 }
 
 

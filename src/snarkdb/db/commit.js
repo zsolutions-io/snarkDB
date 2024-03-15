@@ -46,6 +46,11 @@ export const get_commit_data_from_id = async (database, table, commit_id, pub, t
   };
 }
 
+export const remove_commit = async (database, table, commit_id, pub, temp) => {
+  const commit_dir = get_table_commit_dir(database, table, commit_id, pub, temp);
+  await fs.rm(commit_dir, { recursive: true });
+}
+
 
 export const save_commit_row = async (database, table, commit_id, row_id, row, pub, temp) => {
   const commit_dir = get_table_commit_rows_dir(database, table, commit_id, pub, temp);

@@ -442,6 +442,24 @@ export const table_last_commit = async (database, name) => {
   return sorted_commits[0];
 }
 
+export const table_get_outdated_commits = async (database, name) => {
+  const commit_ids = await table_commit_ids(database, name);
+  const commits = await Promise.all(
+    commit_ids.map(
+      async (commit_id) =>
+        await get_commit_data_from_id(database, name, commit_id, true)
+    )
+  );
+  const sorted_commits = commits.sort(
+    (a, b) => b.timestamp - a.timestamp
+  );
+  return sorted_commits.slice(
+    sorted_commits.length - global.context.cached_commits,
+    sorted_commits.length
+  );
+}
+
+
 export const table_commit_ids = async (database, name) => {
   const table_commits_dir = get_table_commits_dir(database, name, true);
   let commit_ids = [];

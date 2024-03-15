@@ -1,6 +1,13 @@
 import { continuous_sync } from "snarkdb/db/index.js";
 
 const name = "start";
+const start_args = [
+  {
+    name: "port",
+    description: "Port of the IPFS node.",
+    required: false,
+  },
+];
 const description = "Start the continuous syncronisation loop.";
 const pattern = `${name} [OPTIONS]`;
 

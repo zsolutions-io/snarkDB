@@ -35,19 +35,31 @@ dotenv.config({ path: path.resolve(root_path, '.env') });
 
 const load_context = async (argv) => {
   let context = {};
-  const endpoint = argv?.endpoint ? argv.endpoint : process.env.NETWORK_API_URL;
+  const endpoint = argv?.endpoint != null ? argv.endpoint : process.env.NETWORK_API_URL;
   context.endpoint = endpoint;
   try {
-    const mnemonic = argv?.mnemonic ? argv.mnemonic : process.env.MNEMONIC;
+    const mnemonic = argv?.mnemonic != null ? argv.mnemonic : process.env.MNEMONIC;
     const { account, ipfs, snarkdb_id } = mnemonic ?
       await snarkdb_account(mnemonic) :
       { account: null, ipfs: null, snarkdb_id: null };
     const verbosity =
-      argv?.verbosity ?
+      argv?.verbosity != null ?
         Number(argv.verbosity)
-        : process.env.VERBOSITY ?
+        : process.env.VERBOSITY != null ?
           Number(process.env.VERBOSITY)
           : 1;
+    const port =
+      argv?.port != null ?
+        argv?.port :
+        process.env.PORT ?
+          process.env.PORT :
+          3020;
+    const cached_commits =
+      argv?.cached_commit != null ?
+        Number(argv?.port) :
+        process.env.CACHED_COMMITS != null ?
+          Number(process.env.CACHED_COMMITS) :
+          5;
     const package_version = await load_package_version();
     const keyProvider = new AleoKeyProvider();
     keyProvider.useCache(true);
@@ -61,7 +73,9 @@ const load_context = async (argv) => {
 
     context = {
       ...context,
+      port,
       package_version,
+      cached_commits,
       account,
       snarkdb_id,
       mnemonic,
