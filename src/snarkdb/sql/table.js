@@ -453,10 +453,7 @@ export const table_get_outdated_commits = async (database, name) => {
   const sorted_commits = commits.sort(
     (a, b) => b.timestamp - a.timestamp
   );
-  return sorted_commits.slice(
-    sorted_commits.length - global.context.cached_commits,
-    sorted_commits.length
-  );
+  return sorted_commits.slice(global.context.cached_commits);
 }
 
 

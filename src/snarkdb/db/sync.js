@@ -117,7 +117,12 @@ export async function sync_tables(node, ipfs_fs, ipns) {
         table.database, table.name
       );
       for (const commit of outdated) {
-        await remove_commit(table.database, table.name, commit.id, true);
+        try {
+          await remove_commit(table.database, table.name, commit.id, true);
+        } catch (e) { }
+        try {
+          await remove_commit(table.database, table.name, commit.id);
+        } catch (e) { }
       }
     } catch (e) {
       console.log(`Error processing table '${table.name}':`);
