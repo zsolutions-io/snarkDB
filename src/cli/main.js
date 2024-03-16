@@ -65,7 +65,7 @@ const load_context = async (argv) => {
       argv?.ipv6 != null ?
         Boolean(argv?.ipv6) :
         process.env.IPV6 != null ?
-          ipv6 === "true" || ipv6 === "1" :
+          process.env.IPV6 === "true" || process.env.IPV6 === "1" :
           false;
 
     const package_version = await load_package_version();
@@ -82,6 +82,7 @@ const load_context = async (argv) => {
     context = {
       ...context,
       port,
+      ipv6,
       package_version,
       cached_commits,
       account,
