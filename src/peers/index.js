@@ -31,7 +31,6 @@ export async function connect_to_peer(node, identifier) {
   const config = await get_peer_config(identifier);
   const { host, port, ipfs_peer_id } = config;
   const location = format_libp2p_location(host, port, ipfs_peer_id);
-  console.log({ location })
   await node.libp2p.dial(multiaddr(location));
   return config;
 }

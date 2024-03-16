@@ -260,7 +260,7 @@ async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
     const path_to_add = local_dir_path + file.path.slice(remote_path.length);
     try {
       if (file.type === "directory") {
-        await fs.mkdir(local_dir_path + "/" + path_to_add, { recursive: true });
+        await fs.mkdir(path_to_add, { recursive: true });
       } else {
         for await (const file_data of file.content()) {
           await fs.appendFile(
