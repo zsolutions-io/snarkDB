@@ -60,6 +60,14 @@ const load_context = async (argv) => {
         process.env.CACHED_COMMITS != null ?
           Number(process.env.CACHED_COMMITS) :
           5;
+
+    const ipv6 =
+      argv?.ipv6 != null ?
+        Boolean(argv?.ipv6) :
+        process.env.IPV6 != null ?
+          ipv6 === "true" || ipv6 === "1" :
+          false;
+
     const package_version = await load_package_version();
     const keyProvider = new AleoKeyProvider();
     keyProvider.useCache(true);

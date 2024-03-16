@@ -7,6 +7,8 @@ import fsExists from 'fs.promises.exists'
 import { snarkdb_id_to_addresses } from 'snarkdb/accounts/index.js';
 import { multiaddr } from '@multiformats/multiaddr';
 
+import { format_libp2p_location } from 'network/helia.js';
+
 const config_file_name = 'config';
 
 
@@ -28,7 +30,7 @@ export async function get_peer_config(identifier) {
 export async function connect_to_peer(node, identifier) {
   const config = await get_peer_config(identifier);
   const { host, port, ipfs_peer_id } = config;
-  const location = `/ip4/${host}/tcp/${port}/p2p/${ipfs_peer_id}`;
+  const location = format_libp2p_location(host, port, ipfs_peer_id);
   await node.libp2p.dial(multiaddr(location));
   return config;
 }
