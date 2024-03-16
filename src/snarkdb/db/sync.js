@@ -247,6 +247,21 @@ async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
     });
   to_remove.sort((a, b) => a.path.length - b.path.length);
   to_add.sort((a, b) => a.path.length - b.path.length);
+  console.log()
+  console.log()
+  console.log()
+  console.log()
+  console.log()
+  console.log()
+  console.log()
+  console.log({ local: local.files, remote: remote.files })
+  console.log()
+  console.log()
+  console.log()
+  console.log()
+  console.log()
+  console.log()
+  console.log()
   console.log({ to_add, to_remove })
 
   for (const file of to_remove) {
