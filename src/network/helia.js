@@ -25,7 +25,15 @@ export async function init_ipfs_node(address, peerId) {
   const blockstore = new FsBlockstore(blockstore_path);
 
   const libp2p = libp2pDefaults({ peerId: peerId });
-  libp2p.addresses.listen = ['/ip4/0.0.0.0/tcp/' + String(global.context.port)];
+
+  if (global.context.ip6 == null) {
+    global.context.port = 3020;
+  }
+  const host = (String(global.context.ipv6) === "true") ? "::" : "0.0.0.0"
+
+  libp2p.addresses.listen = [
+    format_libp2p_location(host, String(global.context.port))
+  ];
   libp2p.services.pubsub = gossipsub();
   libp2p.datastore = datastore;
 
@@ -34,6 +42,19 @@ export async function init_ipfs_node(address, peerId) {
     blockstore,
     libp2p
   });
+}
+
+
+function isValidIPv6(ip) {
+  const regExp = /^(?:[0-9a-fA-F]{1,4}:){7}(?:[0-9a-fA-F]{1,4}|:)|(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}|:[0-9a-fA-F]{1,4}:|:)|(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}|(?::[0-9a-fA-F]{1,4}){1,2}|:)|(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}|(?::[0-9a-fA-F]{1,4}){1,3}|:)|(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}|(?::[0-9a-fA-F]{1,4}){1,4}|:)|(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}|(?::[0-9a-fA-F]{1,4}){1,5}|:)|(?:[0-9a-fA-F]{1,4}:){1}(?::[0-9a-fA-F]{1,4}|(?::[0-9a-fA-F]{1,4}){1,6}|:)|:(?::[0-9a-fA-F]{1,4}){1,7}$/;
+  return regExp.test(ip) || ip === '::' || ip === '::1' || ip === '::0' || ip === '::1/128' || ip === '::/128' || ip === '::0/128';
+}
+
+
+export function format_libp2p_location(host, port, peerId) {
+  const protocol = isValidIPv6(host) ? 'ip6' : 'ip4';
+  const p2p = (peerId == null) ? `` : `/p2p/${peerId}`;
+  return `/${protocol}/${host}/tcp/${port}${p2p}`;
 }
 
 
