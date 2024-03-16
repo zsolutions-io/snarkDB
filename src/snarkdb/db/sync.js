@@ -228,27 +228,22 @@ async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
   local.files.forEach((f) => {
     f.path_compared = remote_path + "/" + f.path;
   });
-
   const to_add = remote.files.filter((file) => {
     const local_file = local.files.find((f) => f.path_compared === file.path);
-    if (local_file === undefined) {
-      return true;
+    if (file.type === "directory") {
+      return local_file === undefined;
+    } else {
+      return local_file === undefined || local_file.cid.toString() !== file.cid.toString();
     }
-    return local_file.cid.toString() !== file.cid.toString();
   });
   const to_remove = local.files
     .filter((file) => {
       const remote_file = remote.files.find((f) => f.path === file.path_compared);
-      return (
-        (
-          remote_file === undefined
-          || remote_file.cid.toString() !== file.cid.toString()
-        )
-        && (
-          file.unixfs !== undefined
-          || to_add.every((f) => !f.path.startsWith(file.path_compared + "/"))
-        )
-      );
+      if (file.unixfs !== undefined) {
+        return remote_file === undefined;
+      } else {
+        return remote_file === undefined || remote_file.cid.toString() !== file.cid.toString();
+      }
     });
   to_remove.sort((a, b) => a.path.length - b.path.length);
   to_add.sort((a, b) => a.path.length - b.path.length);
@@ -256,15 +251,14 @@ async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
 
   for (const file of to_remove) {
     try {
-      console.log("RM", file.path)
-      //await fs.rm("/" + file.path, { recursive: true });
+      await fs.rm(file.path, { recursive: true });
     } catch (e) { }
   }
   for (const file of to_add) {
     const path_to_add = local_dir_path + file.path.slice(remote_path.length);
     try {
       if (file.type === "directory") {
-        await fs.mkdir(path_to_add, { recursive: true });
+        await fs.mkdir(local_dir_path + "/" + path_to_add, { recursive: true });
       } else {
         for await (const file_data of file.content()) {
           await fs.appendFile(
@@ -277,7 +271,6 @@ async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
     }
   }
 }
-
 
 
 async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
@@ -299,24 +292,20 @@ async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   }
   const to_add = local.files.filter((file) => {
     const remote_file = remote.files.find((f) => f.path === file.path_compared);
-    if (remote_file === undefined) {
-      return true;
+    if (file.unixfs !== undefined) {
+      return remote_file === undefined;
+    } else {
+      return remote_file === undefined || remote_file.cid.toString() !== file.cid.toString();
     }
-    return remote_file.cid.toString() !== file.cid.toString();
   });
   const to_remove = remote.files
     .filter((file) => {
       const local_file = local.files.find((f) => f.path_compared === file.path);
-      return (
-        (
-          local_file === undefined
-          || local_file.cid.toString() !== file.cid.toString()
-        )
-        && (
-          file.type !== "directory"
-          || to_add.every((f) => !f.path_compared.startsWith(file.path + "/"))
-        )
-      );
+      if (file.type === "directory") {
+        return local_file === undefined;
+      } else {
+        return local_file === undefined || local_file.cid.toString() !== file.cid.toString()
+      }
     });
   to_remove.sort((a, b) => a.path.length - b.path.length);
   to_add.sort((a, b) => a.path.length - b.path.length);
