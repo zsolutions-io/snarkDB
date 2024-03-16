@@ -266,8 +266,8 @@ async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
 
   for (const file of to_remove) {
     try {
-      await fs.rm(file.path, { recursive: true });
-    } catch (e) { }
+      await fs.rm(local_dir_path + "/" + file.path, { recursive: true });
+    } catch (e) { console.log(e) }
   }
   for (const file of to_add) {
     const path_to_add = local_dir_path + file.path.slice(remote_path.length);
