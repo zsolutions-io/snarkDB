@@ -103,11 +103,12 @@ const save_query_public_data = async (
       "utf-8"
     ).encode(sql_string)
   ).to_string();
+  const origin_address = origin_account.address().to_string();
   const to_encrypt = `{
     id: ${query_id_as_fields[0]},
     sql: ${encoded_query},
     sig: ${signature},
-    origin: ${origin_account.address().to_string()}
+    origin: ${origin_address}
   }`;
 
   const public_query_dir = get_public_query_dir(query_id);
