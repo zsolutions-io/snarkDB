@@ -53,8 +53,8 @@ export const get_table_commit_rows_dir = (database, table_name, commit, pub, tem
   return `${get_table_commit_dir(database, table_name, commit, pub, temp)}/rows`;
 }
 
-export const get_private_query_dir = (origin, query_hash, temp) => {
-  return `${get_queries_dir(false, temp)}/${origin}/${query_hash}`;
+export const get_query_dir = (origin, query_hash, pub, temp) => {
+  return `${get_queries_dir(pub, temp)}/${origin}/${query_hash}`;
 }
 
 export const get_public_query_dir = (query_id, temp) => {

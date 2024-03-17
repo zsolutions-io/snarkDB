@@ -13,7 +13,7 @@ import { VariableManager } from "aleo/program.js";
 import { null_value_from_type, random_from_type } from "aleo/types/index.js";
 import { encode_string_to_fields } from "aleo/types/custom_string.js";
 
-import { get_private_query_dir, get_public_query_dir } from "snarkdb/db/index.js";
+import { get_private_query_dir, get_query_dir } from "snarkdb/db/index.js";
 import { encrypt_for_anyof_addresses_to_file } from "aleo/encryption.js";
 import {
   Address,
@@ -111,7 +111,7 @@ const save_query_public_data = async (
     origin: ${origin_address}
   }`;
 
-  const public_query_dir = get_public_query_dir(query_id);
+  const public_query_dir = get_query_dir = (origin_address, query_id, true);
   const context_address = global.context.account.address();
   const filename = "encrypted_query";
 

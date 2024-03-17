@@ -152,6 +152,7 @@ export const get_query_from_id = async (view_key, query_id) => {
 
 
 export const get_query_data_from_id = async (view_key, query_id) => {
+  get_query_dir(query_id);
   const query_dir = get_public_query_dir(query_id);
   const query_path = `${query_dir}/encrypted_query.json`;
   const decrypted_query = await decrypt_file_from_anyof_address(

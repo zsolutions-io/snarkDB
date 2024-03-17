@@ -140,31 +140,35 @@ export async function sync_tables(node, ipfs_fs, ipns) {
 
 
 export async function sync_queries() {
-  const query_ids = await fdirectory.readdir(get_queries_dir(true));
+  const queries_dir = get_queries_dir(true);
+  const owners = await fs.readdir(queries_dir);
   const address = global.context.account.address().to_string();
   const view_key = global.context.account.viewKey();
-  for (const query_id of query_ids) {
-    try {
-      const query = await get_query_from_id(view_key, query_id);
-      let results_data = await get_query_private_result_data(
-        query.data.origin, query.data.hash
-      );
-      if (query.status !== "processed" || results_data == null) {
-        continue;
-      }
-      if (!results_data.checked) {
-        const valid = await verify_query_results(query,);
-        results_data = {
-          checked: true,
-          valid,
-        };
-        await save_query_private_result_data(
-          query.data.origin, query.data.hash, results_data
+  for (const owner of owners) {
+    const owner_dir = `${queries_dir}/${owner}`;
+    for (const query_id of query_ids) {
+      try {
+        const query = await get_query_from_id(view_key, query_id);
+        let results_data = await get_query_private_result_data(
+          query.data.origin, query.data.hash
         );
+        if (query.status !== "processed" || results_data == null) {
+          continue;
+        }
+        if (!results_data.checked) {
+          const valid = await verify_query_results(query,);
+          results_data = {
+            checked: true,
+            valid,
+          };
+          await save_query_private_result_data(
+            query.data.origin, query.data.hash, results_data
+          );
+        }
+      } catch (e) {
+        console.log(`Error processing query '${query_id}':`);
+        console.log(e);
       }
-    } catch (e) {
-      console.log(`Error processing query '${query_id}':`);
-      console.log(e);
     }
   }
 }
