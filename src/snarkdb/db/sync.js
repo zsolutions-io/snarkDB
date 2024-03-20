@@ -20,12 +20,14 @@ import {
   get_queries_dir,
   get_database_tables_dir,
   get_database_queries_dir,
+  get_approved_queries_dir,
 } from "snarkdb/db/index.js";
 import { connect_to_peer } from "peers/index.js";
 
 import { remove_commit } from "snarkdb/db/commit.js";
 
 import { table_get_outdated_commits } from "snarkdb/sql/table.js";
+import { process_query } from "snarkdb/queries/process.js";
 
 import {
   init_ipfs_node,
@@ -152,6 +154,17 @@ export async function sync_tables() {
 
 
 export async function sync_queries() {
+  const approved_dir = get_approved_queries_dir(global.context.account.address().to_string());
+  try {
+    const files = await fs.readdir(approved_dir);
+    for (const file of files) {
+      const query_id = file.split('.').pop().join('.');
+      await process_query(query_id);
+      await fs.rm(approved_dir + "/" + file);
+    }
+  }
+  catch (e) { }
+
   const queries_dir = get_queries_dir(true);
   const owners = await fs.readdir(queries_dir);
   const address = global.context.account.address().to_string();
