@@ -109,14 +109,16 @@ export const get_all_remote_files = async (ipfs_fs, path, files) => {
   if (!path.endsWith('/')) {
     path = path + '/';
   }
-  for await (const file of ipfs_fs.ls(path)) {
-    files.push(file);
-    file.path = path + file.name;
-    file.path = file.path.slice(1);
-    if (file.type === 'directory') {
-      await get_all_remote_files(ipfs_fs, file.path, files);
+  try {
+    for await (const file of ipfs_fs.ls(path)) {
+      files.push(file);
+      file.path = path + file.name;
+      file.path = file.path.slice(1);
+      if (file.type === 'directory') {
+        await get_all_remote_files(ipfs_fs, file.path, files);
+      }
     }
-  }
+  } catch (e) { }
 
   const cid = ipfs_fs.root ? ipfs_fs.root.toString() : null;
   return { files, cid };
