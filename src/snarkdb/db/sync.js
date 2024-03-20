@@ -159,7 +159,7 @@ export async function sync_queries() {
     const files = await fs.readdir(approved_dir);
     console.log(`Processing ${files.length} approved queries...`);
     for (const file of files) {
-      const query_id = file.split('.').at(-1);
+      const query_id = file.split('.').at(0);
       await process_query(query_id);
       await fs.rm(approved_dir + "/" + file);
     }
