@@ -118,9 +118,7 @@ export const get_all_remote_files = async (ipfs_fs, path, files) => {
         await get_all_remote_files(ipfs_fs, file.path, files);
       }
     }
-  } catch (e) {
-    console.log(e)
-  }
+  } catch (e) { }
 
   const cid = ipfs_fs.root ? ipfs_fs.root.toString() : null;
   return { files, cid };
