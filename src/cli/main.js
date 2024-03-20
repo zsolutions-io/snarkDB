@@ -51,12 +51,12 @@ const load_context = async (argv) => {
     const port =
       argv?.port != null ?
         argv?.port :
-        process.env.PORT ?
+        process.env.PORT != null ?
           process.env.PORT :
           3020;
     const cached_commits =
       argv?.cached_commit != null ?
-        Number(argv?.port) :
+        Number(argv?.cached_commit) :
         process.env.CACHED_COMMITS != null ?
           Number(process.env.CACHED_COMMITS) :
           5;

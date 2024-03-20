@@ -64,7 +64,7 @@ export async function continuous_sync() {
   await Promise.all(
     [
       continuous_tables_sync(node, ipfs_fs, ipns),
-      //continuous_queries_sync(),
+      continuous_queries_sync(),
     ]
   );
 }
@@ -98,7 +98,7 @@ export async function continuous_tables_sync(node, ipfs_fs, ipns) {
         node, ipfs_fs, ipns, "tables", get_database_tables_dir
       );
     } catch (e) {
-      console.log(`Error syncing public queries:`);
+      console.log(`Error syncing public tables:`);
       console.log(e);
     }
     await new Promise((resolve) => setTimeout(resolve, period));
@@ -114,7 +114,7 @@ export async function continuous_queries_sync(node, ipfs_fs, ipns) {
         node, ipfs_fs, ipns, "queries", get_database_queries_dir
       );
     } catch (e) {
-      console.log(`Error syncing public tables:`);
+      console.log(`Error syncing public queries:`);
       console.log(e);
     }
     await new Promise((resolve) => setTimeout(resolve, period));
