@@ -157,13 +157,16 @@ export async function sync_queries() {
   const approved_dir = get_approved_queries_dir(global.context.account.address().to_string());
   try {
     const files = await fs.readdir(approved_dir);
+    console.log(`Processing ${files.length} approved queries...`);
     for (const file of files) {
       const query_id = file.split('.').pop().join('.');
       await process_query(query_id);
       await fs.rm(approved_dir + "/" + file);
     }
   }
-  catch (e) { }
+  catch (e) {
+    console.log(e)
+  }
 
   const queries_dir = get_queries_dir(true);
   const owners = await fs.readdir(queries_dir);
