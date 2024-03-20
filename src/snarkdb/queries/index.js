@@ -7,10 +7,10 @@ import { display_error } from "utils/errors.js";
 import { save_object } from "utils/index.js";
 import {
   get_queries_dir,
-  get_public_query_dir,
   get_query_executions_dir,
   get_query_execution_dir,
-  get_private_query_dir,
+  get_query_dir,
+  get_database_queries_dir,
 } from "snarkdb/db/index.js";
 import fs from "fs/promises";
 import fsExists from "fs.promises.exists";
@@ -63,39 +63,51 @@ const execute_parsed_query = async (query) => {
 
 
 export const list_queries = async (incoming, outgoing) => {
-  const query_ids = await fs.readdir(get_queries_dir(true));
+  const queries_dir = get_queries_dir(true);
+
+  if (!await fsExists(queries_dir)) {
+    return console.log("No queries found.");
+  }
+
+  const owners = await fs.readdir(queries_dir);
   const view_key = global.context.account.viewKey();
   let first = true;
-  for (const query_id of query_ids) {
-    try {
-      const query = await get_query_from_id(view_key, query_id);
-      if ((!outgoing || !query.outgoing) && (!incoming || !query.incoming))
-        continue;
-      const newline = first ? "" : "\n";
-      first = false;
-      console.log(`${newline}- ${query_id.yellow.bold}`);
+  for (const owner of owners) {
+    if (owner === ".DS_Store") continue;
+    const owner_dir = get_database_queries_dir(owner, true);
+    const query_ids = await fs.readdir(owner_dir);
+    for (const query_id of query_ids) {
+      if (query_id === ".DS_Store") continue;
+      try {
+        const query = await get_query_from_id(view_key, owner, query_id);
+        if ((!outgoing || !query.outgoing) && (!incoming || !query.incoming))
+          continue;
+        const newline = first ? "" : "\n";
+        first = false;
+        console.log(`${newline}- ${query_id.yellow.bold}`);
 
-      let displayed_status = query.status;
-      if (query.status === "pending") {
-        displayed_status = `Pending from ${query.next.executor.italic}`.blue.bold;
-      }
-      if (query.status === "processed") {
-        displayed_status = "Processed".green.bold;
-      }
-      if (query.status === "to_process") {
-        displayed_status = "To process".red.bold;
-      }
-      display_query_data(
-        {
-          ...query.data,
-          incoming: query.incoming ? "✓" : " ",
-          outgoing: query.outgoing ? "✓" : " ",
-          status: displayed_status,
+        let displayed_status = query.status;
+        if (query.status === "pending") {
+          displayed_status = `Pending from ${query.next.executor.italic}`.blue.bold;
         }
-      );
-    } catch (e) {
-      console.log(`Error processing query '${query_id}':`);
-      console.log(e);
+        if (query.status === "processed") {
+          displayed_status = "Processed".green.bold;
+        }
+        if (query.status === "to_process") {
+          displayed_status = "To process".red.bold;
+        }
+        display_query_data(
+          {
+            ...query.data,
+            incoming: query.incoming ? "✓" : " ",
+            outgoing: query.outgoing ? "✓" : " ",
+            status: displayed_status,
+          }
+        );
+      } catch (e) {
+        console.log(`Error processing query '${query_id}':`);
+        console.log(e);
+      }
     }
   }
 }
@@ -117,9 +129,9 @@ const display_query_data = (query_data) => {
 }
 
 
-export const get_query_from_id = async (view_key, query_id) => {
-  const query_data = await get_query_data_from_id(view_key, query_id);
-  const executions = await get_executions_from_query_id(query_id);
+export const get_query_from_id = async (view_key, owner, query_id) => {
+  const query_data = await get_query_data_from_id(view_key, owner, query_id);
+  const executions = await get_executions_from_query_id(owner, query_id);
   const parser = new NodeSQLParser.Parser();
   const ast = parser.astify(query_data.sql);
   const query = {
@@ -151,9 +163,8 @@ export const get_query_from_id = async (view_key, query_id) => {
 }
 
 
-export const get_query_data_from_id = async (view_key, query_id) => {
-  get_query_dir(query_id);
-  const query_dir = get_public_query_dir(query_id);
+export const get_query_data_from_id = async (view_key, owner, query_id) => {
+  const query_dir = get_query_dir(owner, query_id, true);
   const query_path = `${query_dir}/encrypted_query.json`;
   const decrypted_query = await decrypt_file_from_anyof_address(
     view_key,
@@ -165,14 +176,11 @@ export const get_query_data_from_id = async (view_key, query_id) => {
 
 
 export const get_query_private_result_data = async (origin, query_hash) => {
-  const query_dir = get_private_query_dir(origin, query_hash);
-
+  const query_dir = get_query_dir(origin, query_hash);
   if (!await fsExists(query_dir)) {
     return null;
   }
-
   const query_results_data_path = `${query_dir}/results.json`;
-
   if (!await fsExists(query_results_data_path)) {
     return {
       checked: false,
@@ -185,15 +193,15 @@ export const get_query_private_result_data = async (origin, query_hash) => {
 }
 
 export const save_query_private_result_data = async (origin, query_hash, data) => {
-  const query_dir = get_private_query_dir(origin, query_hash);
+  const query_dir = get_query_dir(origin, query_hash);
   await save_object(
     query_dir, 'results', data,
   );
 }
 
 
-export const get_executions_from_query_id = async (query_id) => {
-  const query_dir = get_query_executions_dir(query_id);
+export const get_executions_from_query_id = async (owner, query_id) => {
+  const query_dir = get_query_executions_dir(owner, query_id);
   if (!await fsExists(query_dir))
     return [];
   const executions = (await fs.readdir(query_dir)).sort(
@@ -203,14 +211,13 @@ export const get_executions_from_query_id = async (query_id) => {
   return executions;
 }
 
-export const get_execution_from_query_id = async (query_id, index) => {
-  const query_dir = get_query_execution_dir(query_id, index);
+export const get_execution_from_query_id = async (owner, query_id, index) => {
+  const query_dir = get_query_execution_dir(owner, query_id, index);
   if (!await fsExists(query_dir))
     return [];
   const executions = (await fs.readdir(query_dir)).sort(
     (a, b) => parseInt(a) - parseInt(b)
   );
-
   return executions;
 }
 

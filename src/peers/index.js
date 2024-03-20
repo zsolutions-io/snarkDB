@@ -22,6 +22,9 @@ export async function get_peer_config(identifier) {
   throw_invalid_identifier(identifier);
   const peer_path = get_peer_dir(identifier);
   const config_path = `${peer_path}/${config_file_name}.json`;
+  if (!await fsExists(config_path)) {
+    throw new Error(`Peer '${identifier}' does not exist.`);
+  }
   const config_content = await fs.readFile(config_path, 'utf8')
   return JSON.parse(config_content);
 }
@@ -34,7 +37,6 @@ export async function connect_to_peer(node, identifier) {
   await node.libp2p.dial(multiaddr(location));
   return config;
 }
-
 
 
 export async function list_peers() {

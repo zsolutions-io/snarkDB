@@ -14,7 +14,6 @@ function aleo_object_to_js(aleo_obj) {
 
   if (aleo_obj === "true") return "true"
   if (aleo_obj === "false") return "false"
-  console.log(String(aleo_obj))
   return '"' + String(aleo_obj) + '"'
 }
 

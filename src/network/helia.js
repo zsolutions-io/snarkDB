@@ -26,9 +26,6 @@ export async function init_ipfs_node(address, peerId) {
 
   const libp2p = libp2pDefaults({ peerId: peerId });
 
-  if (global.context.ip6 == null) {
-    global.context.port = 3020;
-  }
   const host = global.context.ipv6 ? "::" : "0.0.0.0"
 
   libp2p.addresses.listen = [

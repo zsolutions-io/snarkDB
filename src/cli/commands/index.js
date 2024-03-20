@@ -10,6 +10,6 @@ export default {
   start,
   datasource,
   table,
-  query,
   peer,
+  query,
 }

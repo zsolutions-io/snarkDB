@@ -1,18 +1,84 @@
 
 import {
-  process_select_from_commit,
-  verify_select_from_commit,
-  table_commit_decoy,
-  save_select_results,
-  process_select_from_select,
-  verify_select_from_select,
-  table_insert_row
+  table_insert_row,
 } from 'snarkdb/db/commit.js';
 
+import {
+  get_query_from_id,
+  get_query_private_result_data,
+} from 'snarkdb/queries/index.js';
 
-import NodeSQLParser from "node-sql-parser";
+import { sync_queries } from 'snarkdb/db/sync.js';
+
+import {
+  get_queries_dir,
+  get_database_queries_dir,
+  get_queries_results_dir
+} from 'snarkdb/db/index.js';
+
+import fs from 'fs/promises';
+import fsExists from 'fs.promises.exists';
+
+
+
 
 export const retrieve_query_result = async (query_id) => {
+  return await sync_queries();
+  const view_key = global.context.account.viewKey();
+  const queries_dir = get_queries_dir(true);
+  const owners = await fs.readdir(queries_dir);
+
+  const pv_queries_dir = get_queries_dir(false);
+  const pv_owners = await fs.readdir(pv_queries_dir);
+  let found_owner = null;
+  for (const owner of pv_owners) {
+    const owner_dir = get_database_queries_dir(owner, true)
+    const query_ids = await fs.readdir(owner_dir);
+    for (const comp_query_id of query_ids) {
+      if (comp_query_id === query_id) {
+        found_owner = owner;
+      }
+    }
+  };
+  if (found_owner == null) {
+    throw new Error(`Query with id '${query_id}' not found.`);
+  }
+
+  const query = await get_query_from_id(view_key, found_owner, query_id);
+  const results_data = await get_query_private_result_data(
+    query.data.origin, query.data.hash,
+  );
+  if (query.status !== "processed") {
+    throw new Error(`Query with id '${query_id}' not processed.`);
+  }
+  if (results_data == null || !results_data.checked) {
+    throw new Error(`Query with id '${query_id}' not verified yet.`);
+  }
+  if (!results_data.valid) {
+    throw new Error(`Query with id '${query_id}' proof is invalid.`);
+  }
+
+  const results_dir = get_queries_results_dir(found_owner, query.data.hash);
+  const results_dir_exists = await fsExists(results_dir);
+  if (!results_dir_exists) {
+    throw new Error(`Query '${query_id}' has no results (yet?).`);
+  }
+  const filenames = await fs.readdir(results_dir);
+  const results = [];
+  for (const filename of filenames) {
+    const result_path = `${results_dir}/${filename}`;
+    const result_data = await fs.readFile(result_path, 'utf8');
+    results.push(JSON.parse(result_data));
+  }
+  console.table(results);
+};
+
+
+
+
+export const retrieve_query_result_former = async (query_id) => {
+  await sync_queries();
+
   //{col_2_1:456field,col_2_2:789field,col_2_3:false}
   /*
   await table_commit_row(
@@ -24,11 +90,7 @@ export const retrieve_query_result = async (query_id) => {
     "table2",
   );
   */
-  const parser = new NodeSQLParser.Parser();
-  const query = String(query_id)
-  const [ast] = parser.astify(query);
-  //const sql = parser.sqlify(ast);
-  console.log(JSON.stringify(ast, null, 2));
+
   return;
   const table2 = {
     name: "table2",

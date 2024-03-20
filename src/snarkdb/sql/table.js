@@ -32,6 +32,8 @@ import {
 import fs from "fs/promises";
 import fsExists from "fs.promises.exists";
 
+import { get_peer } from "peers/index.js";
+
 import {
   Address,
 } from '@aleohq/sdk';
@@ -179,7 +181,7 @@ export class Table {
     const {
       data_commit_id, dsk_commit_id
     } = await this.compute_commit_ids(commit_temp_id, csk);
-    const commit_id = combine_commit_ids(data_commit_id, dsk_commit_id);
+    const commit_id = encode_commit_ids_to_base58({ data_commit_id, dsk_commit_id });
 
     await move_temp_to_permanent(this, commit_temp_id, commit_id);
     console.log(`Commit ${commit_id} created for table ${this.name}.`);
@@ -305,7 +307,6 @@ export class Table {
       [dsk_state, csk],
       false,
     );
-
     return { data_commit_id, dsk_commit_id };
   }
 }
@@ -366,7 +367,7 @@ Table.from_columns = function (
     snarkdb_version,
     as,
     is_view,
-    commit_id
+    commit_id,
   );
 };
 
@@ -473,10 +474,45 @@ export const commit_exists = async (database, name, commit_id) => {
 
 
 export const combine_commit_ids = (data_commit_id, dsk_commit_id) => {
+  console.log({ data_commit_id, dsk_commit_id })
   const part1 = data_commit_id.replace(/\D/g, '');
   const part2 = dsk_commit_id.replace(/\D/g, '');
 
   return hash_str(`${part1}${part2}`);
+}
+
+
+import bs58 from 'bs58';
+export function bigintToBase58(bigintValue) {
+  let hex = bigintValue.toString(16);
+  if (hex.length % 2 !== 0) hex = '0' + hex;
+  const byteArray = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+  return bs58.encode(byteArray);
+}
+
+export function base58ToBigInt(base58Value) {
+  const byteArray = bs58.decode(base58Value);
+  const hex = Array.from(byteArray).map(byte => byte.toString(16).padStart(2, '0')).join('');
+  return BigInt('0x' + hex);
+}
+
+
+export function encode_commit_ids_to_base58(commit_ids) {
+  const data_commit_id_int = BigInt(commit_ids.data_commit_id.replace(/\D/g, ''));
+  const dsk_commit_id_int = BigInt(commit_ids.dsk_commit_id.replace(/\D/g, ''));
+  const encoded_commit_id_int = data_commit_id_int + (dsk_commit_id_int << 253n);
+  return bigintToBase58(encoded_commit_id_int);
+}
+
+
+export function decode_base58_to_commit_ids(encoded_commit_id) {
+  const encoded_commit_id_int = base58ToBigInt(encoded_commit_id);
+  const dsk_commit_id_int = encoded_commit_id_int >> 253n;
+  const data_commit_id_int = encoded_commit_id_int - (dsk_commit_id_int << 253n);
+  return {
+    data_commit_id: data_commit_id_int.toString() + 'field',
+    dsk_commit_id: dsk_commit_id_int.toString() + 'field'
+  };
 }
 
 
@@ -691,6 +727,9 @@ const commit_separator = "_";
 const add_db_and_commit = async (table) => {
   if (table.db == null) {
     table.db = global.context.account.address().to_string();
+  } else if (!is_valid_address(table.db)) {
+    const { aleo_address } = await get_peer(table.db);
+    table.db = aleo_address;
   }
   const full_name = table.table;
   const parts = full_name.split(commit_separator);

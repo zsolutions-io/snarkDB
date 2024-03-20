@@ -9,6 +9,7 @@ import {
 import { get_peer_dir, peers_dir } from "snarkdb/db/index.js";
 import {
   verify_query_results,
+  get_query_results,
 } from 'snarkdb/queries/verify.js';
 
 import {
@@ -18,6 +19,7 @@ import fs from 'fs/promises';
 import {
   get_queries_dir,
   get_database_tables_dir,
+  get_database_queries_dir,
 } from "snarkdb/db/index.js";
 import { connect_to_peer } from "peers/index.js";
 
@@ -90,21 +92,37 @@ export async function init_ipfs() {
 
 export async function continuous_tables_sync(node, ipfs_fs, ipns) {
   while (true) {
-    await sync_tables(node, ipfs_fs, ipns);
+    await sync_tables();
+    try {
+      await sync_public_dir(
+        node, ipfs_fs, ipns, "tables", get_database_tables_dir
+      );
+    } catch (e) {
+      console.log(`Error syncing public queries:`);
+      console.log(e);
+    }
     await new Promise((resolve) => setTimeout(resolve, period));
   }
 }
 
 
-export async function continuous_queries_sync() {
+export async function continuous_queries_sync(node, ipfs_fs, ipns) {
   while (true) {
     await sync_queries();
+    try {
+      await sync_public_dir(
+        node, ipfs_fs, ipns, "queries", get_database_queries_dir
+      );
+    } catch (e) {
+      console.log(`Error syncing public tables:`);
+      console.log(e);
+    }
     await new Promise((resolve) => setTimeout(resolve, period));
   }
 }
 
 
-export async function sync_tables(node, ipfs_fs, ipns) {
+export async function sync_tables() {
   const address = global.context.account.address().to_string();
   const tables = await get_address_tables(address);
   if (tables.length === 0) {
@@ -130,12 +148,6 @@ export async function sync_tables(node, ipfs_fs, ipns) {
     }
     await table.close();
   }
-  try {
-    await sync_public_dir_tables(node, ipfs_fs, ipns);
-  } catch (e) {
-    console.log(`Error syncing public tables:`);
-    console.log(e);
-  }
 }
 
 
@@ -146,24 +158,28 @@ export async function sync_queries() {
   const view_key = global.context.account.viewKey();
   for (const owner of owners) {
     const owner_dir = `${queries_dir}/${owner}`;
+    const query_ids = await fs.readdir(owner_dir);
     for (const query_id of query_ids) {
       try {
-        const query = await get_query_from_id(view_key, query_id);
+        const query = await get_query_from_id(view_key, owner, query_id);
         let results_data = await get_query_private_result_data(
-          query.data.origin, query.data.hash
+          query.data.origin, query.data.hash,
         );
         if (query.status !== "processed" || results_data == null) {
           continue;
         }
         if (!results_data.checked) {
-          const valid = await verify_query_results(query,);
+          const valid = await verify_query_results(owner, query_id, query);
+          await get_query_results(owner, query_id, query,);
           results_data = {
             checked: true,
             valid,
           };
+          /*
           await save_query_private_result_data(
             query.data.origin, query.data.hash, results_data
           );
+          */
         }
       } catch (e) {
         console.log(`Error processing query '${query_id}':`);
@@ -174,17 +190,25 @@ export async function sync_queries() {
 }
 
 
-export async function sync_public_dir_tables(node, ipfs_fs, ipns) {
-  await sync_local_to_remote_public_dir_tables(node, ipfs_fs, ipns);
-  await remote_to_local_public_dir_tables(node, ipfs_fs, ipns);
+export async function sync_public_dir(
+  node, ipfs_fs, ipns, dir, get_dir_from_address
+) {
+  await sync_local_to_remote_public_dir(
+    node, ipfs_fs, ipns, dir, get_dir_from_address
+  );
+  await remote_to_local_public_dir(
+    node, ipfs_fs, ipns, dir, get_dir_from_address
+  );
 }
 
 
-export async function sync_local_to_remote_public_dir_tables(node, ipfs_fs, ipns) {
+export async function sync_local_to_remote_public_dir(
+  node, ipfs_fs, ipns, dir, get_dir_from_address
+) {
   const address = global.context.account.address().to_string();
-  const database_tables_dir = get_database_tables_dir(address, true);
+  const database_tables_dir = get_dir_from_address(address, true);
 
-  const remote_tables_path = "/tables";
+  const remote_tables_path = "/" + dir;
   try {
     await ipfs_fs.stat(remote_tables_path);
   } catch (e) {
@@ -201,7 +225,9 @@ export async function sync_local_to_remote_public_dir_tables(node, ipfs_fs, ipns
 }
 
 
-export async function remote_to_local_public_dir_tables(node, ipfs_fs, ipns) {
+export async function remote_to_local_public_dir(
+  node, ipfs_fs, ipns, dir, get_dir_from_address
+) {
   let peers = [];
   try {
     peers = await fs.readdir(peers_dir);
@@ -210,9 +236,9 @@ export async function remote_to_local_public_dir_tables(node, ipfs_fs, ipns) {
     const {
       snarkdb_id, aleo_address, ipfs_peer_id, host, port
     } = await connect_to_peer(node, identifier)
-    const database_tables_dir = get_database_tables_dir(aleo_address, true);
+    const database_tables_dir = get_dir_from_address(aleo_address, true);
     const remote = await ipns.pubsub.resolve(peerIdFromString(ipfs_peer_id));
-    const remote_tables_path = remote.cid.toString() + "/tables";
+    const remote_tables_path = remote.cid.toString() + "/" + dir;
 
     if (!await fsExists(database_tables_dir)) {
       await fs.mkdir(database_tables_dir);

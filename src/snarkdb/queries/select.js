@@ -13,7 +13,7 @@ import { VariableManager } from "aleo/program.js";
 import { null_value_from_type, random_from_type } from "aleo/types/index.js";
 import { encode_string_to_fields } from "aleo/types/custom_string.js";
 
-import { get_private_query_dir, get_query_dir } from "snarkdb/db/index.js";
+import { get_query_dir } from "snarkdb/db/index.js";
 import { encrypt_for_anyof_addresses_to_file } from "aleo/encryption.js";
 import {
   Address,
@@ -79,7 +79,7 @@ const save_query = async (query_id, sql_string, froms,) => {
     hash: query_hash,
     view_key,
   };
-  const private_query_dir = get_private_query_dir(origin, query_hash);
+  const private_query_dir = get_query_dir(origin, query_hash);
   await save_object(
     private_query_dir,
     "description",
@@ -111,7 +111,7 @@ const save_query_public_data = async (
     origin: ${origin_address}
   }`;
 
-  const public_query_dir = get_query_dir = (origin_address, query_id, true);
+  const public_query_dir = get_query_dir(origin_address, query_id, true);
   const context_address = global.context.account.address();
   const filename = "encrypted_query";
 
@@ -695,7 +695,6 @@ const parse_where_expression = (expression, froms, fields, all_fields) => {
 }
 
 
-
 const parse_column_ref_expression = (expression, froms, fields, all_fields) => {
   let corresponding_fields = expression?.table ? fields.filter(
     ({ table }) => table.ref === expression.table
@@ -718,7 +717,6 @@ const parse_column_ref_expression = (expression, froms, fields, all_fields) => {
 
 const parse_binary_expr_expression = (expression) => {
   const { left, right, operator } = expression;
-
   return expression;
 }
 
@@ -737,7 +735,6 @@ const get_single_from_where_instructions = (vars, where) => {
     `Where clause type ${where.type} not supported.`
   );
 }
-
 
 
 const boolean_where_instructions = (vars, boolean) => {

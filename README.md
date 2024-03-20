@@ -139,8 +139,8 @@ nested_select owner :
 
 ## Todo
 
-- Add IPFS public directory sync to 'snarkdb start' (upload everything in public / download every relevant commits).
-
--
-
 - Query proof verification
+- String support
+- Nested query (proof + verification)
+- JOIN
+- Expressions for selected columns (Arithemtics + String manipulation)

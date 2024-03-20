@@ -137,11 +137,9 @@ export async function verify_execution(
   function_name,
   example_inputs,
 ) {
-
   const program_code = await load_cached_program_source(
     program_id
   );
-
   const [
     _,
     verifying_key
@@ -151,15 +149,13 @@ export async function verify_execution(
     function_name,
     example_inputs,
     global.context.account.privateKey().to_string(),
-  );
-
+  )
   const valid_proof = await verify_execution_no_cache(
     execution,
     program_code,
     function_name,
     verifying_key,
   );
-
   return valid_proof;
 }
 

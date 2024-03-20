@@ -3,13 +3,34 @@ import { process_select_from_commit } from 'snarkdb/db/commit.js'
 import {
   initThreadPool
 } from "@aleohq/sdk";
+import {
+  get_queries_dir,
+  get_database_queries_dir,
+} from "snarkdb/db/index.js";
+import fs from "fs/promises";
+
 
 export const process_query = async (query_id) => {
   const view_key = global.context.account.viewKey();
-  const query = await get_query_from_id(view_key, query_id);
+  const queries_dir = get_queries_dir(true);
+  const owners = await fs.readdir(queries_dir);
+  let found_owner = null;
+  for (const owner of owners) {
+    const owner_dir = get_database_queries_dir(owner, true)
+    const query_ids = await fs.readdir(owner_dir);
+    for (const comp_query_id of query_ids) {
+      if (comp_query_id === query_id) {
+        found_owner = owner;
+      }
+    }
+  };
+  if (found_owner == null) {
+    throw new Error(`Query with id '${query_id}' not found.`);
+  }
+  const query = await get_query_from_id(view_key, found_owner, query_id);
   throw_invalid_process_query(query);
   await initThreadPool();
-  await process_execution(query_id, query.next);
+  await process_execution(found_owner, query_id, query.next);
 };
 
 
@@ -26,15 +47,15 @@ const throw_invalid_process_query = (query) => {
 };
 
 
-const process_execution = async (query_id, execution) => {
+const process_execution = async (origin, query_id, execution) => {
   await execution.query_table.program.save();
   const commit_id = execution.from_table.commit_id;
   const table_name = execution.from_table.name;
   await process_select_from_commit(
+    origin,
     query_id,
     { name: table_name, database: execution.from_table.database },
     { id: commit_id },
     execution.index
   );
-
 };
