@@ -6,8 +6,10 @@ import {
 import {
   get_queries_dir,
   get_database_queries_dir,
+  get_approved_queries_dir,
 } from "snarkdb/db/index.js";
 import fs from "fs/promises";
+import { save_object } from 'utils/fs.js';
 
 
 export const process_query = async (query_id) => {
@@ -29,8 +31,31 @@ export const process_query = async (query_id) => {
   }
   const query = await get_query_from_id(view_key, found_owner, query_id);
   throw_invalid_process_query(query);
-  await initThreadPool();
   await process_execution(found_owner, query_id, query.next);
+};
+
+
+export const approve_query = async (query_id) => {
+  const view_key = global.context.account.viewKey();
+  const queries_dir = get_queries_dir(true);
+  const owners = await fs.readdir(queries_dir);
+  let found_owner = null;
+  for (const owner of owners) {
+    const owner_dir = get_database_queries_dir(owner, true)
+    const query_ids = await fs.readdir(owner_dir);
+    for (const comp_query_id of query_ids) {
+      if (comp_query_id === query_id) {
+        found_owner = owner;
+      }
+    }
+  };
+  if (found_owner == null) {
+    throw new Error(`Query with id '${query_id}' not found.`);
+  }
+  const query = await get_query_from_id(view_key, found_owner, query_id);
+  throw_invalid_process_query(query);
+  const approved_dir = get_approved_queries_dir(found_owner);
+  await save_object(approved_dir, query_id, query);
 };
 
 

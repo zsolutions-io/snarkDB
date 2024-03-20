@@ -64,6 +64,10 @@ export const get_queries_results_dir = (origin, query_hash, temp) => {
   return `${get_query_dir(origin, query_hash, false, temp)}/results`;
 }
 
+export const get_approved_queries_dir = (origin,) => {
+  return `${get_database_queries_dir(origin,)}/approved`;
+}
+
 export const get_query_executions_dir = (origin, query_hash, temp) => {
   return `${get_query_dir(origin, query_hash, true, temp)}/executions`;
 }
