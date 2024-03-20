@@ -54,7 +54,7 @@ export const approve_query = async (query_id) => {
   }
   const query = await get_query_from_id(view_key, found_owner, query_id);
   throw_invalid_process_query(query);
-  const approved_dir = get_approved_queries_dir(found_owner);
+  const approved_dir = get_approved_queries_dir(global.context.account.address().to_string());
   await save_object(approved_dir, query_id, query);
 };
 
