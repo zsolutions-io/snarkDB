@@ -233,16 +233,15 @@ export async function remote_to_local_public_dir(
     peers = await fs.readdir(peers_dir);
   } catch (e) { }
   for (const identifier of peers) {
-    console.log({ identifier })
     const {
       snarkdb_id, aleo_address, ipfs_peer_id, host, port
-    } = await connect_to_peer(node, identifier)
+    } = await connect_to_peer(node, identifier);
     const database_tables_dir = get_dir_from_address(aleo_address, true);
     const remote = await ipns.pubsub.resolve(peerIdFromString(ipfs_peer_id));
     const remote_tables_path = remote.cid.toString() + "/" + dir;
 
     if (!await fsExists(database_tables_dir)) {
-      await fs.mkdir(database_tables_dir);
+      await fs.mkdir(database_tables_dir, { recursive: true });
     }
     await sync_remote_to_local(
       remote_tables_path, database_tables_dir, ipfs_fs.unixfs
