@@ -132,6 +132,11 @@ export const get_all_local_files = async (path) => {
   const node = await init_offline_node();
   const unixfs_fs = unixfs(node);
   let cid = null;
+
+  if (!await fsExists(path)) {
+    return { files: null, cid: null };
+  }
+
   if (!path.endsWith('/')) {
     path = path + '/';
   }
