@@ -233,7 +233,7 @@ export async function remote_to_local_public_dir(
     peers = await fs.readdir(peers_dir);
   } catch (e) { }
   for (const identifier of peers) {
-    console.log(identifier)
+    console.log({ identifier })
     const {
       snarkdb_id, aleo_address, ipfs_peer_id, host, port
     } = await connect_to_peer(node, identifier)
