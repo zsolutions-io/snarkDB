@@ -132,7 +132,7 @@ export const get_all_local_files = async (path) => {
   let cid = null;
 
   if (!await fsExists(path)) {
-    return { files: null, cid: null };
+    return { files: [], cid: null };
   }
 
   if (!path.endsWith('/')) {
