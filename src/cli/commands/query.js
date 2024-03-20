@@ -3,7 +3,7 @@ import {
   execute_query,
   retrieve_query_result,
   list_queries,
-  process_query,
+  approve_query,
 } from "snarkdb/queries/index.js";
 
 const name = "query";
@@ -55,20 +55,20 @@ const list_description = (
 );
 const list_help = get_help_message(null, list_pattern, list_description, list_args);
 
-const description = `Initiate, process and manage zkSQL queries.`;
+const description = `Initiate, approve and manage zkSQL queries.`;
 const _pattern = `${name} <SUBCOMMAND> [OPTIONS]`;
 const pattern = `${name} [SUBCOMMAND] [OPTIONS]`;
 
-const process_name = "process";
+const process_name = "approve";
 const process_args = [
   {
     name: "queryId",
-    description: "Identifier of the query to process.",
+    description: "Identifier of the query to approve.",
     required: true,
   },
 ];
 const process_pattern = `${name} ${process_name} [OPTIONS]`;
-const process_description = `Process an incoming zkSQL query.`;
+const process_description = `Approve an incoming zkSQL query.`;
 const process_help = get_help_message(null, process_pattern, process_description, process_args);
 
 
@@ -132,7 +132,7 @@ const entrypoint = async (args) => {
       queryId == null
     )
       return console.log(process_help);
-    return await process_query(queryId);
+    return await approve_query(queryId);
   }
 
   console.log(get_help_message(actions, _pattern, description, null));
