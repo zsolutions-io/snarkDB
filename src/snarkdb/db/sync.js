@@ -64,7 +64,7 @@ export async function continuous_sync() {
   await Promise.all(
     [
       continuous_tables_sync(node, ipfs_fs, ipns),
-      continuous_queries_sync(),
+      continuous_queries_sync(node, ipfs_fs, ipns),
     ]
   );
 }
