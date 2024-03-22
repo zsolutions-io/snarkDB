@@ -11,6 +11,7 @@ import { parse_record } from 'aleo/types/index.js';
 import { verify_select_from_commit } from 'snarkdb/db/commit.js';
 import { decode_base58_to_commit_ids } from 'snarkdb/sql/table.js';
 
+
 export const verify_query_results = async (owner, query_id, query) => {
   const encoded_commit_ids = query.ast.from.map(table => table.table.split('_').at(-1)).at(-1);
   const commit_ids = decode_base58_to_commit_ids(encoded_commit_ids);

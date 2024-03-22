@@ -110,11 +110,12 @@ export async function continuous_tables_sync(node, ipfs_fs, ipns) {
 
 export async function continuous_queries_sync(node, ipfs_fs, ipns) {
   while (true) {
-    await sync_queries();
     try {
+      await sync_queries();
       await sync_public_dir(
         node, ipfs_fs, ipns, "queries", get_database_queries_dir
       );
+      await merge_queries();
     } catch (e) {
       console.log(`Error syncing public queries:`);
       console.log(e);
@@ -123,6 +124,9 @@ export async function continuous_queries_sync(node, ipfs_fs, ipns) {
   }
 }
 
+export async function merge_queries() {
+
+}
 
 export async function sync_tables() {
   const address = global.context.account.address().to_string();

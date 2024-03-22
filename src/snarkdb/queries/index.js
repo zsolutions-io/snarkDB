@@ -6,7 +6,7 @@ export { retrieve_query_result } from "./result.js";
 import { display_error } from "utils/errors.js";
 import { save_object } from "utils/index.js";
 import {
-  get_queries_dir,
+  merged_dir,
   get_query_executions_dir,
   get_query_execution_dir,
   get_query_dir,
@@ -63,7 +63,7 @@ const execute_parsed_query = async (query) => {
 
 
 export const list_queries = async (incoming, outgoing) => {
-  const queries_dir = get_queries_dir(true);
+  const queries_dir = merged_dir;
 
   if (!await fsExists(queries_dir)) {
     return console.log("No queries found.");

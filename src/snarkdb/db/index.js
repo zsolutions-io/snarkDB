@@ -6,7 +6,7 @@ export const ipfs_storage_dir = `${resources_dir}/ipfs`;
 export const datasources_dir = `${resources_dir}/datasources`;
 export const peers_dir = `${resources_dir}/peers`;
 export const public_resources_dir = `${resources_dir}/public`;
-
+export const merged_dir = `${resources_dir}/merged`;
 
 export const get_tables_dir = (pub, temp) => {
   const base = temp ? temp_resources_dir : resources_dir;
@@ -18,6 +18,14 @@ export const get_queries_dir = (pub, temp) => {
   const base = temp ? temp_resources_dir : resources_dir;
   const mid = pub ? "/public" : "";
   return `${base}${mid}/queries`;
+}
+
+export const get_merged_owner_dir = (owner) => {
+  return `${merged_dir}/${owner}`;
+}
+
+export const get_merged_owner_query_dir = (owner, query_id) => {
+  return `${get_merged_owner_dir(owner)}/${query_id}`;
 }
 
 export const get_datasource_dir = (identifier) => {

@@ -25,9 +25,6 @@ import fsExists from 'fs.promises.exists';
 export const retrieve_query_result = async (query_id) => {
   return await sync_queries();
   const view_key = global.context.account.viewKey();
-  const queries_dir = get_queries_dir(true);
-  const owners = await fs.readdir(queries_dir);
-
   const pv_queries_dir = get_queries_dir(false);
   const pv_owners = await fs.readdir(pv_queries_dir);
   let found_owner = null;

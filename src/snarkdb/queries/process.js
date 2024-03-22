@@ -4,7 +4,7 @@ import {
   initThreadPool
 } from "@aleohq/sdk";
 import {
-  get_queries_dir,
+  merged_dir,
   get_database_queries_dir,
   get_approved_queries_dir,
 } from "snarkdb/db/index.js";
@@ -14,7 +14,7 @@ import { save_object } from 'utils/fs.js';
 
 export const process_query = async (query_id) => {
   const view_key = global.context.account.viewKey();
-  const queries_dir = get_queries_dir(true);
+  const queries_dir = merged_dir;
   const owners = await fs.readdir(queries_dir);
   let found_owner = null;
   for (const owner of owners) {
@@ -37,7 +37,7 @@ export const process_query = async (query_id) => {
 
 export const approve_query = async (query_id) => {
   const view_key = global.context.account.viewKey();
-  const queries_dir = get_queries_dir(true);
+  const queries_dir = merged_dir;
   const owners = await fs.readdir(queries_dir);
   let found_owner = null;
   for (const owner of owners) {
