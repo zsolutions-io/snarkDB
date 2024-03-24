@@ -154,7 +154,6 @@ export async function merge_queries() {
 }
 
 async function merge_query(owner, query_id) {
-  console.log("merge")
   const public_query_dir = get_query_dir(owner, query_id, true);
   const public_query_desc_path = `${public_query_dir}/${encrypted_query_filename}.json`
   const merged_query_dir = get_merged_query_dir(query_id);
@@ -173,7 +172,6 @@ async function merge_query(owner, query_id) {
       await fs.cp(public_query_desc_path, merged_query_desc_path);
     }
   }
-  console.log("here")
   await merge_executions(owner, query_id);
 }
 
@@ -182,6 +180,7 @@ async function merge_executions(owner, query_id) {
   if (!(await fsExists(public_query_executions_dir))) {
     return;
   }
+  console.log(owner, query_id)
   const merged_query_executions_dir = get_merged_query_executions_dir(query_id);
   if (!(await fsExists(merged_query_executions_dir))) {
     await fs.mkdir(merged_query_executions_dir, { recursive: true });
