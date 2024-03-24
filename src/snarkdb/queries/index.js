@@ -1,8 +1,7 @@
 import NodeSQLParser from "node-sql-parser";
 
-import { execute_select_query, load_select_query, select_query_to_table } from "./select.js";
+import { encrypted_query_filename, execute_select_query, load_select_query, select_query_to_table } from "./select.js";
 export { retrieve_query_result } from "./result.js";
-export { encrypted_query_filename } from "./index.js";
 
 import { display_error } from "utils/errors.js";
 import { save_object } from "utils/index.js";

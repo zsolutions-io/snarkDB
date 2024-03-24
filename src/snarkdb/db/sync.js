@@ -12,6 +12,9 @@ import {
   verify_query_results,
   get_query_results,
 } from 'snarkdb/queries/verify.js';
+import {
+  encrypted_query_filename
+} from 'snarkdb/queries/select.js';
 
 import {
   get_address_tables
