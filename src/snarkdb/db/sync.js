@@ -173,6 +173,7 @@ async function merge_query(owner, query_id) {
       await fs.cp(public_query_desc_path, merged_query_desc_path);
     }
   }
+  console.log("here")
   await merge_executions(owner, query_id);
 }
 
