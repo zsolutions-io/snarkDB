@@ -139,9 +139,9 @@ export async function continuous_queries_sync(node, ipfs_fs, ipns) {
 export async function merge_queries() {
   const public_queries_dir = get_queries_dir(true);
   const owners = await fs.readdir(public_queries_dir);
-  console.log({ owners })
   for (const owner of owners) {
-    const query_ids = await fs.readdir(public_queries_dir);
+    const queries_dir = get_database_queries_dir(owner, true);
+    const query_ids = await fs.readdir(queries_dir);
     for (const query_id of query_ids) {
       try {
         await merge_query(owner, query_id);
@@ -170,6 +170,8 @@ async function merge_query(owner, query_id) {
     if (merged_query_desc_cid !== public_query_desc_cid) {
       throw Error(`Query mismatch for query '${query_id}' from '${owner}'`);
     }
+  } else {
+    await fs.cp(public_query_desc_path, merged_query_desc_path);
   }
   await merge_executions(owner, query_id);
 }
