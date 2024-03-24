@@ -185,14 +185,12 @@ async function merge_executions(owner, query_id) {
     await fs.mkdir(merged_query_executions_dir, { recursive: true });
   }
   const public_execution_ids = await fs.readdir(public_query_executions_dir);
-  console.log(public_query_executions_dir)
   for (const public_execution_id of public_execution_ids) {
     await merge_execution(owner, query_id, public_execution_id);
   }
 }
 
 async function merge_execution(owner, query_id, execution_index) {
-  console.log(owner, query_id, execution_index)
   const merged_query_execution_dir = get_merged_query_execution_dir(
     query_id, execution_index
   );
@@ -367,7 +365,6 @@ export async function remote_to_local_public_dir(
 async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
   const remote = await get_all_remote_files(ipfs_fs, remote_path);
   const local = await get_all_local_files(local_dir_path);
-  console.log(local)
   if (remote_path.endsWith('/')) {
     remote_path = remote_path.slice(0, -1);
   }
@@ -423,6 +420,7 @@ async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
 
 async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   const local = await get_all_local_files(local_dir_path);
+  console.log({ local_dir_path, remote_path })
   if (!remote_path.startsWith('/')) {
     remote_path = '/' + remote_path;
   }
