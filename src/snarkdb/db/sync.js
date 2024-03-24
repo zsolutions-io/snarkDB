@@ -180,12 +180,12 @@ async function merge_executions(owner, query_id) {
   if (!(await fsExists(public_query_executions_dir))) {
     return;
   }
-  console.log(owner, query_id)
   const merged_query_executions_dir = get_merged_query_executions_dir(query_id);
   if (!(await fsExists(merged_query_executions_dir))) {
     await fs.mkdir(merged_query_executions_dir, { recursive: true });
   }
   const public_execution_ids = await fs.readdir(public_query_executions_dir);
+  console.log(public_execution_ids)
   for (const public_execution_id of public_execution_ids) {
     await merge_execution(owner, query_id, public_execution_id);
   }
