@@ -435,11 +435,6 @@ async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   if (local_cid === remote_cid) {
     return;
   }
-  console.log(local_dir_path)
-  if (local_dir_path.startsWith("/Users/palong/aleo/snarkDB2/resources/public/queries/")) {
-    console.log("local", local.files)
-    console.log("remote", remote.files)
-  }
   const to_add = local.files.filter((file) => {
     const remote_file = remote.files.find((f) => f.path === file.path_compared);
     if (file.unixfs !== undefined) {
