@@ -139,6 +139,7 @@ export async function continuous_queries_sync(node, ipfs_fs, ipns) {
 export async function merge_queries() {
   const public_queries_dir = get_queries_dir(true);
   const owners = await fs.readdir(public_queries_dir);
+  console.log({ owners })
   for (const owner of owners) {
     const query_ids = await fs.readdir(public_queries_dir);
     for (const query_id of query_ids) {
@@ -250,10 +251,19 @@ export async function sync_queries() {
     }
   }
   catch (e) {
-    console.log(e)
+    if (e.code !== "ENOENT") {
+      console.log(e)
+    }
   }
   const view_key = global.context.account.viewKey();
-  const query_ids = await fs.readdir(merged_dir);
+  let query_ids = [];
+  try {
+    query_ids = await fs.readdir(merged_dir);
+  } catch (e) {
+    if (e.code !== "ENOENT") {
+      console.log(e);
+    }
+  }
   for (const query_id of query_ids) {
     try {
       const query = await get_query_from_id(view_key, query_id);
@@ -331,19 +341,23 @@ export async function remote_to_local_public_dir(
     );
   } catch (e) { }
   for (const identifier of peers) {
-    const {
-      snarkdb_id, aleo_address, ipfs_peer_id, host, port
-    } = await connect_to_peer(node, identifier);
-    const database_tables_dir = get_dir_from_address(aleo_address, true);
-    const remote = await ipns.pubsub.resolve(peerIdFromString(ipfs_peer_id));
-    const remote_tables_path = remote.cid.toString() + "/" + dir;
-
-    if (!await fsExists(database_tables_dir)) {
-      await fs.mkdir(database_tables_dir, { recursive: true });
+    try {
+      const {
+        snarkdb_id, aleo_address, ipfs_peer_id, host, port
+      } = await connect_to_peer(node, identifier);
+      const database_tables_dir = get_dir_from_address(aleo_address, true);
+      const remote = await ipns.pubsub.resolve(peerIdFromString(ipfs_peer_id));
+      const remote_tables_path = remote.cid.toString() + "/" + dir;
+      if (!await fsExists(database_tables_dir)) {
+        await fs.mkdir(database_tables_dir, { recursive: true });
+      }
+      await sync_remote_to_local(
+        remote_tables_path, database_tables_dir, ipfs_fs.unixfs
+      );
+    } catch (e) {
+      console.log(`Error syncing public tables from peer '${identifier}':`);
+      console.log(e);
     }
-    await sync_remote_to_local(
-      remote_tables_path, database_tables_dir, ipfs_fs.unixfs
-    );
   }
 }
 
