@@ -208,6 +208,8 @@ async function merge_execution(owner, query_id, execution_index) {
     return;
   }
   // await fs.mkdir(merged_query_execution_dir, { recursive: true });
+  console.log(public_query_execution_dir)
+  console.log(merged_query_execution_dir)
   await fs.cp(public_query_execution_dir, merged_query_execution_dir, { overwrite: true, recursive: true, });
 }
 
