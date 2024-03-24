@@ -21,7 +21,6 @@ import fsExists from 'fs.promises.exists';
 
 
 export const retrieve_query_result = async (query_id) => {
-  return await sync_queries();
   const view_key = global.context.account.viewKey();
 
   const query = await get_query_from_id(view_key, query_id);
