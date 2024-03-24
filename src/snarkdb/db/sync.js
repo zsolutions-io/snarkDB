@@ -154,6 +154,7 @@ export async function merge_queries() {
 }
 
 async function merge_query(owner, query_id) {
+  console.log("merge")
   const public_query_dir = get_query_dir(owner, query_id, true);
   const public_query_desc_path = `${public_query_dir}/${encrypted_query_filename}.json`
   const merged_query_dir = get_merged_query_dir(query_id);
