@@ -5,7 +5,6 @@ import {
   get_query_from_id,
   get_query_private_result_data,
   save_query_private_result_data,
-  merged_dir,
 } from 'snarkdb/queries/index.js';
 
 import {
@@ -32,6 +31,7 @@ import {
   get_query_executions_dir,
   get_merged_query_execution_dir,
   get_query_execution_dir,
+  merged_dir,
 } from "snarkdb/db/index.js";
 import { connect_to_peer } from "peers/index.js";
 
