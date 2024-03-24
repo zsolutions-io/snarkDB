@@ -1,6 +1,6 @@
 import {
-  get_query_execution_dir,
   get_queries_results_dir,
+  get_merged_query_execution_dir,
 } from 'snarkdb/db/index.js';
 import fs from 'fs/promises';
 import fsExists from 'fs.promises.exists';
@@ -12,18 +12,19 @@ import { verify_select_from_commit } from 'snarkdb/db/commit.js';
 import { decode_base58_to_commit_ids } from 'snarkdb/sql/table.js';
 
 
-export const verify_query_results = async (owner, query_id, query) => {
-  const encoded_commit_ids = query.ast.from.map(table => table.table.split('_').at(-1)).at(-1);
+export const verify_query_results = async (query_id, query) => {
+  const encoded_commit_ids = query.ast.from.map(
+    table => table.table.split('_').at(-1)
+  ).at(-1);
   const commit_ids = decode_base58_to_commit_ids(encoded_commit_ids);
   return await verify_select_from_commit(
-    owner,
     query_id,
     query.table,
     commit_ids.data_commit_id,
   );
 }
 
-export const get_query_results = async (owner, query_id, query) => {
+export const get_query_results = async (query_id, query) => {
   try {
     const execution_index = query
       .table
@@ -31,8 +32,8 @@ export const get_query_results = async (owner, query_id, query) => {
       .sort((a, b) => a.index - b.index)
       .at(-1)
       .index;
-    const executions_dir = get_query_execution_dir(
-      owner, query_id, execution_index
+    const executions_dir = get_merged_query_execution_dir(
+      query_id, execution_index
     );
     const executions_dir_exists = await fsExists(executions_dir);
     if (!executions_dir_exists) {
@@ -57,7 +58,7 @@ export const get_query_results = async (owner, query_id, query) => {
       if (!record.decoy) {
         results.push(record.data);
         await save_request_results(
-          owner, query.data.hash, record.data, out_index
+          query.data.origin, query.data.hash, record.data, out_index
         );
         out_index++;
       }

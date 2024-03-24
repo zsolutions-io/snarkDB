@@ -11,8 +11,6 @@ import {
 import { sync_queries } from 'snarkdb/db/sync.js';
 
 import {
-  get_queries_dir,
-  get_database_queries_dir,
   get_queries_results_dir
 } from 'snarkdb/db/index.js';
 
@@ -25,23 +23,8 @@ import fsExists from 'fs.promises.exists';
 export const retrieve_query_result = async (query_id) => {
   return await sync_queries();
   const view_key = global.context.account.viewKey();
-  const pv_queries_dir = get_queries_dir(false);
-  const pv_owners = await fs.readdir(pv_queries_dir);
-  let found_owner = null;
-  for (const owner of pv_owners) {
-    const owner_dir = get_database_queries_dir(owner, true)
-    const query_ids = await fs.readdir(owner_dir);
-    for (const comp_query_id of query_ids) {
-      if (comp_query_id === query_id) {
-        found_owner = owner;
-      }
-    }
-  };
-  if (found_owner == null) {
-    throw new Error(`Query with id '${query_id}' not found.`);
-  }
 
-  const query = await get_query_from_id(view_key, found_owner, query_id);
+  const query = await get_query_from_id(view_key, query_id);
   const results_data = await get_query_private_result_data(
     query.data.origin, query.data.hash,
   );
@@ -55,7 +38,7 @@ export const retrieve_query_result = async (query_id) => {
     throw new Error(`Query with id '${query_id}' proof is invalid.`);
   }
 
-  const results_dir = get_queries_results_dir(found_owner, query.data.hash);
+  const results_dir = get_queries_results_dir(query.data.origin, query.data.hash);
   const results_dir_exists = await fsExists(results_dir);
   if (!results_dir_exists) {
     throw new Error(`Query '${query_id}' has no results (yet?).`);

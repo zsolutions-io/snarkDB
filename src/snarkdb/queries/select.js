@@ -90,6 +90,7 @@ const save_query = async (query_id, sql_string, froms,) => {
 }
 
 const total_addresses_amount = 10;
+export const encrypted_query_filename = "encrypted_query";
 
 const save_query_public_data = async (
   origin_account, query_id, sql_string, froms, view_key
@@ -113,7 +114,6 @@ const save_query_public_data = async (
 
   const public_query_dir = get_query_dir(origin_address, query_id, true);
   const context_address = global.context.account.address();
-  const filename = "encrypted_query";
 
   const enc_addresses = [...
     new Set(
@@ -139,7 +139,7 @@ const save_query_public_data = async (
     signer,
     to_encrypt,
     public_query_dir,
-    filename,
+    encrypted_query_filename,
     addresses,
     view_key,
   );

@@ -239,7 +239,7 @@ export const get_table_last_state = async (database, table_name) => {
 
 
 export const save_execution = async (
-  origin, request_id, database, table_name, index, execution, execution_index
+  origin, request_id, index, execution, execution_index
 ) => {
   const executions_dir = get_query_execution_dir(
     origin, request_id, execution_index, true
@@ -356,7 +356,7 @@ const execute_select_on_select = async (
       prev_commit,
     );
     await save_execution(
-      origin, request_id, database, from_request_id, execution_index, execution.execution
+      origin, request_id, from_request_id, execution_index, execution.execution
     );
     prev_state = execution.outputs[0];
     prev_csk = execution.inputs[1];
@@ -372,7 +372,7 @@ const initiate_select_on_commits = async (
     execution, inputs, outputs
   } = await execute_initiate_select_on_commits();
   await save_execution(
-    origin, request_id, address, table_name, 0, execution, execution_index
+    origin, request_id, 0, execution, execution_index
   );
   return {
     state: "0field",
@@ -435,7 +435,7 @@ const execute_select_on_commits = async (
       prev_commit,
     );
     await save_execution(
-      origin, request_id, database, table.name, index + 1, execution.execution, execution_index
+      origin, request_id, index + 1, execution.execution, execution_index
     );
     prev_state = execution.outputs[0];
     prev_csk = execution.inputs[1];

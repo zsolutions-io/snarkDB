@@ -20,20 +20,28 @@ export const get_queries_dir = (pub, temp) => {
   return `${base}${mid}/queries`;
 }
 
-export const get_merged_owner_dir = (owner) => {
-  return `${merged_dir}/${owner}`;
+export const get_merged_query_dir = (query_id) => {
+  return `${merged_dir}/${query_id}`;
 }
 
-export const get_merged_owner_query_dir = (owner, query_id) => {
-  return `${get_merged_owner_dir(owner)}/${query_id}`;
+export const get_merged_query_executions_dir = (query_id) => {
+  return `${get_merged_query_dir(query_id)}/executions`;
+}
+
+export const get_merged_query_execution_dir = (query_id, execution_index) => {
+  return `${get_merged_query_executions_dir(query_id)}/${execution_index}`;
 }
 
 export const get_datasource_dir = (identifier) => {
   return `${datasources_dir}/${identifier}`;
 }
 
-export const get_peer_dir = (identifier) => {
-  return `${peers_dir}/${identifier}`;
+export const get_peers_dir = (address) => {
+  return `${peers_dir}/${address}`;
+}
+
+export const get_peer_dir = (address, identifier) => {
+  return `${get_peers_dir(address)}/${identifier}`;
 }
 
 export const get_database_tables_dir = (database, pub, temp) => {

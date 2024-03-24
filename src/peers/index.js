@@ -1,4 +1,4 @@
-import { get_peer_dir, peers_dir } from "snarkdb/db/index.js";
+import { get_peer_dir, get_peers_dir } from "snarkdb/db/index.js";
 import { save_object } from "utils/fs.js";
 
 import fs from "fs/promises";
@@ -20,7 +20,7 @@ export async function get_peer(identifier) {
 
 export async function get_peer_config(identifier) {
   throw_invalid_identifier(identifier);
-  const peer_path = get_peer_dir(identifier);
+  const peer_path = get_peer_dir(global.context.account.address().to_string(), identifier);
   const config_path = `${peer_path}/${config_file_name}.json`;
   if (!await fsExists(config_path)) {
     throw new Error(`Peer '${identifier}' does not exist.`);
@@ -40,7 +40,11 @@ export async function connect_to_peer(node, identifier) {
 
 
 export async function list_peers() {
-  const peers = await fs.readdir(peers_dir);
+  const peers = await fs.readdir(
+    get_peers_dir(
+      global.context.account.address().to_string()
+    )
+  );
   if (peers.length === 0) {
     return console.log('No peers found.');
   }
@@ -61,7 +65,7 @@ export async function add_peer(identifier, snarkdb_id, host, port, overwrite) {
   throw_invalid_identifier(identifier);
   const { aleo_address, ipfs_peer_id } = snarkdb_id_to_addresses(snarkdb_id);
   const peer_settings = { snarkdb_id, aleo_address, ipfs_peer_id, host, port };
-  const peer_path = get_peer_dir(identifier);
+  const peer_path = get_peer_dir(global.context.account.address().to_string(), identifier);
   await save_object(
     peer_path, config_file_name, peer_settings, !overwrite
   );
@@ -70,7 +74,7 @@ export async function add_peer(identifier, snarkdb_id, host, port, overwrite) {
 
 export async function remove_peer(identifier) {
   throw_invalid_identifier(identifier);
-  const peer_path = get_peer_dir(identifier);
+  const peer_path = get_peer_dir(global.context.account.address().to_string(), identifier);
 
   if (!await fsExists(peer_path)) {
     throw new Error(`peer '${identifier}' does not exist.`);

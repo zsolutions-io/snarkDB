@@ -5,8 +5,9 @@ import {
   get_query_from_id,
   get_query_private_result_data,
   save_query_private_result_data,
+  merged_dir,
 } from 'snarkdb/queries/index.js';
-import { get_peer_dir, peers_dir } from "snarkdb/db/index.js";
+
 import {
   verify_query_results,
   get_query_results,
@@ -21,6 +22,13 @@ import {
   get_database_tables_dir,
   get_database_queries_dir,
   get_approved_queries_dir,
+  get_merged_query_executions_dir,
+  get_peers_dir,
+  get_merged_query_dir,
+  get_query_dir,
+  get_query_executions_dir,
+  get_merged_query_execution_dir,
+  get_query_execution_dir,
 } from "snarkdb/db/index.js";
 import { connect_to_peer } from "peers/index.js";
 
@@ -124,8 +132,76 @@ export async function continuous_queries_sync(node, ipfs_fs, ipns) {
   }
 }
 
-export async function merge_queries() {
 
+export async function merge_queries() {
+  const public_queries_dir = get_queries_dir(true);
+  const owners = await fs.readdir(public_queries_dir);
+  for (const owner of owners) {
+    const query_ids = await fs.readdir(public_queries_dir);
+    for (const query_id of query_ids) {
+      try {
+        await merge_query(owner, query_id);
+      } catch (e) {
+        console.log(`Error merging query '${query_id}' from ${owner}:`);
+        console.log(e);
+      }
+    }
+  }
+}
+
+async function merge_query(owner, query_id) {
+  const public_query_dir = get_query_dir(owner, query_id, true);
+  const public_query_desc_path = `${public_query_dir}/${encrypted_query_filename}.json`
+  if (!(await fsExists(public_query_desc_path))) {
+    return;
+  }
+  const merged_query_dir = get_merged_query_dir(query_id);
+  if (!(await fsExists(merged_query_dir))) {
+    await fs.mkdir(merged_query_dir, { recursive: true });
+  }
+  const merged_query_desc_path = `${merged_query_dir}/${encrypted_query_filename}.json`
+  if (await fsExists(merged_query_desc_path)) {
+    const merged_query_desc_cid = await compute_cid(merged_query_desc_path);
+    const public_query_desc_cid = await compute_cid(public_query_desc_path);
+    if (merged_query_desc_cid !== public_query_desc_cid) {
+      throw Error(`Query mismatch for query '${query_id}' from '${owner}'`);
+    }
+  }
+  await merge_executions(owner, query_id);
+}
+
+async function merge_executions(owner, query_id) {
+  const public_query_executions_dir = get_query_executions_dir(owner, query_id, true);
+  if (!(await fsExists(public_query_executions_dir))) {
+    return;
+  }
+  const merged_query_executions_dir = get_merged_query_executions_dir(query_id);
+  if (!(await fsExists(merged_query_executions_dir))) {
+    await fs.mkdir(merged_query_executions_dir, { recursive: true });
+  }
+  const public_execution_ids = await fs.readdir(public_query_executions_dir);
+  for (const public_execution_id of public_execution_ids) {
+    await merge_execution(owner, query_id, public_execution_id);
+  }
+}
+
+async function merge_execution(owner, query_id, execution_index) {
+  const merged_query_execution_dir = get_merged_query_execution_dir(
+    query_id, execution_index
+  );
+  const public_query_execution_dir = get_query_execution_dir(
+    owner, query_id, execution_index
+  );
+  if (await fsExists(merged_query_execution_dir)) {
+    const merged_query_exec_cid = await compute_cid(merged_query_execution_dir);
+    const public_query_exec_cid = await compute_cid(public_query_execution_dir);
+    if (merged_query_exec_cid !== public_query_exec_cid) {
+      throw Error(`Execution mismatch for query '${query_id}' from '${owner}'`);
+    }
+    return;
+  }
+  await fs.mkdir(merged_query_execution_dir, { recursive: true });
+  await fs.cp(public_query_execution_dir, merged_query_execution_dir);
 }
 
 export async function sync_tables() {
@@ -158,7 +234,9 @@ export async function sync_tables() {
 
 
 export async function sync_queries() {
-  const approved_dir = get_approved_queries_dir(global.context.account.address().to_string());
+  const approved_dir = get_approved_queries_dir(
+    global.context.account.address().to_string()
+  );
   try {
     const files = await fs.readdir(approved_dir);
     console.log(`Processing ${files.length} approved queries...`);
@@ -171,40 +249,33 @@ export async function sync_queries() {
   catch (e) {
     console.log(e)
   }
-
-  const queries_dir = get_queries_dir(true);
-  const owners = await fs.readdir(queries_dir);
-  const address = global.context.account.address().to_string();
   const view_key = global.context.account.viewKey();
-  for (const owner of owners) {
-    const owner_dir = `${queries_dir}/${owner}`;
-    const query_ids = await fs.readdir(owner_dir);
-    for (const query_id of query_ids) {
-      try {
-        const query = await get_query_from_id(view_key, owner, query_id);
-        let results_data = await get_query_private_result_data(
-          query.data.origin, query.data.hash,
-        );
-        if (query.status !== "processed" || results_data == null) {
-          continue;
-        }
-        if (!results_data.checked) {
-          const valid = await verify_query_results(owner, query_id, query);
-          await get_query_results(owner, query_id, query,);
-          results_data = {
-            checked: true,
-            valid,
-          };
-          /*
-          await save_query_private_result_data(
-            query.data.origin, query.data.hash, results_data
-          );
-          */
-        }
-      } catch (e) {
-        console.log(`Error processing query '${query_id}':`);
-        console.log(e);
+  const query_ids = await fs.readdir(merged_dir);
+  for (const query_id of query_ids) {
+    try {
+      const query = await get_query_from_id(view_key, query_id);
+      let results_data = await get_query_private_result_data(
+        query.data.origin, query.data.hash,
+      );
+      if (query.status !== "processed" || results_data == null) {
+        continue;
       }
+      if (!results_data.checked) {
+        const valid = await verify_query_results(query_id, query);
+        await get_query_results(query_id, query,);
+        results_data = {
+          checked: true,
+          valid,
+        };
+        /*
+        await save_query_private_result_data(
+          query.data.origin, query.data.hash, results_data
+        );
+        */
+      }
+    } catch (e) {
+      console.log(`Error processing query '${query_id}':`);
+      console.log(e);
     }
   }
 }
@@ -250,7 +321,11 @@ export async function remote_to_local_public_dir(
 ) {
   let peers = [];
   try {
-    peers = await fs.readdir(peers_dir);
+    peers = await fs.readdir(
+      get_peers_dir(
+        global.context.account.address().to_string()
+      )
+    );
   } catch (e) { }
   for (const identifier of peers) {
     const {
