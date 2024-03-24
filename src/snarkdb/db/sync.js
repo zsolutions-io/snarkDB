@@ -433,6 +433,7 @@ async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   const remote = await get_all_remote_files(ipfs_fs, remote_path)
   const local_cid = local.cid?.toString == null ? null : local.cid.toString();
   const remote_cid = remote.cid?.toString == null ? null : remote.cid.toString();
+  console.log({ local_cid, remote_cid })
   if (local_cid === remote_cid) {
     return;
   }
