@@ -208,8 +208,6 @@ async function merge_execution(owner, query_id, execution_index) {
     return;
   }
   await fs.mkdir(merged_query_execution_dir, { recursive: true });
-  console.log(public_query_execution_dir)
-  console.log(merged_query_execution_dir)
   await fs.cp(public_query_execution_dir, merged_query_execution_dir, { overwrite: true, recursive: true, });
 }
 
@@ -369,6 +367,7 @@ export async function remote_to_local_public_dir(
 async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
   const remote = await get_all_remote_files(ipfs_fs, remote_path);
   const local = await get_all_local_files(local_dir_path);
+  console.log(local)
   if (remote_path.endsWith('/')) {
     remote_path = remote_path.slice(0, -1);
   }
