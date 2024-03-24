@@ -185,7 +185,7 @@ async function merge_executions(owner, query_id) {
     await fs.mkdir(merged_query_executions_dir, { recursive: true });
   }
   const public_execution_ids = await fs.readdir(public_query_executions_dir);
-  console.log(public_execution_ids)
+  console.log(public_query_executions_dir)
   for (const public_execution_id of public_execution_ids) {
     await merge_execution(owner, query_id, public_execution_id);
   }
