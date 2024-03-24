@@ -420,7 +420,6 @@ async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
 
 async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   const local = await get_all_local_files(local_dir_path);
-  console.log({ local_dir_path, local })
   if (!remote_path.startsWith('/')) {
     remote_path = '/' + remote_path;
   }
@@ -437,6 +436,8 @@ async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   if (local_cid === remote_cid) {
     return;
   }
+  console.log(local.files)
+  console.log(remote.files)
   const to_add = local.files.filter((file) => {
     const remote_file = remote.files.find((f) => f.path === file.path_compared);
     if (file.unixfs !== undefined) {
