@@ -156,22 +156,21 @@ export async function merge_queries() {
 async function merge_query(owner, query_id) {
   const public_query_dir = get_query_dir(owner, query_id, true);
   const public_query_desc_path = `${public_query_dir}/${encrypted_query_filename}.json`
-  if (!(await fsExists(public_query_desc_path))) {
-    return;
-  }
   const merged_query_dir = get_merged_query_dir(query_id);
   if (!(await fsExists(merged_query_dir))) {
     await fs.mkdir(merged_query_dir, { recursive: true });
   }
-  const merged_query_desc_path = `${merged_query_dir}/${encrypted_query_filename}.json`
-  if (await fsExists(merged_query_desc_path)) {
-    const merged_query_desc_cid = await compute_cid(merged_query_desc_path);
-    const public_query_desc_cid = await compute_cid(public_query_desc_path);
-    if (merged_query_desc_cid !== public_query_desc_cid) {
-      throw Error(`Query mismatch for query '${query_id}' from '${owner}'`);
+  if (await fsExists(public_query_desc_path)) {
+    const merged_query_desc_path = `${merged_query_dir}/${encrypted_query_filename}.json`
+    if (await fsExists(merged_query_desc_path)) {
+      const merged_query_desc_cid = await compute_cid(merged_query_desc_path);
+      const public_query_desc_cid = await compute_cid(public_query_desc_path);
+      if (merged_query_desc_cid !== public_query_desc_cid) {
+        throw Error(`Query mismatch for query '${query_id}' from '${owner}'`);
+      }
+    } else {
+      await fs.cp(public_query_desc_path, merged_query_desc_path);
     }
-  } else {
-    await fs.cp(public_query_desc_path, merged_query_desc_path);
   }
   await merge_executions(owner, query_id);
 }
