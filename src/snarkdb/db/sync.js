@@ -365,6 +365,8 @@ export async function remote_to_local_public_dir(
 async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
   const remote = await get_all_remote_files(ipfs_fs, remote_path);
   const local = await get_all_local_files(local_dir_path);
+  if (remote_path.includes("queries"))
+    console.log(remote.files)
   if (remote_path.endsWith('/')) {
     remote_path = remote_path.slice(0, -1);
   }
