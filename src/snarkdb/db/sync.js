@@ -191,6 +191,7 @@ async function merge_executions(owner, query_id) {
 }
 
 async function merge_execution(owner, query_id, execution_index) {
+  console.log(owner, query_id, execution_index)
   const merged_query_execution_dir = get_merged_query_execution_dir(
     query_id, execution_index
   );
