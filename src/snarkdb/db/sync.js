@@ -169,7 +169,7 @@ async function merge_query(owner, query_id) {
         throw Error(`Query mismatch for query '${query_id}' from '${owner}'`);
       }
     } else {
-      await fs.cp(public_query_desc_path, merged_query_desc_path);
+      await fs.cp(public_query_desc_path, merged_query_desc_path, { recursive: true });
     }
   }
   await merge_executions(owner, query_id);
@@ -208,7 +208,7 @@ async function merge_execution(owner, query_id, execution_index) {
     return;
   }
   await fs.mkdir(merged_query_execution_dir, { recursive: true });
-  await fs.cp(public_query_execution_dir, merged_query_execution_dir);
+  await fs.cp(public_query_execution_dir, merged_query_execution_dir, { recursive: true, });
 }
 
 export async function sync_tables() {
