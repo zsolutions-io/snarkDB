@@ -14,7 +14,7 @@ export const process_query = async (query_id) => {
   throw_invalid_process_query(query);
 
   await process_execution(
-    global.context.account.address.to_string(),
+    global.context.account.address().to_string(),
     query_id,
     query.next
   );
