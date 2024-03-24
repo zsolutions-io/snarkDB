@@ -532,13 +532,12 @@ const execute_select_on_row = async (
 
 
 export const verify_select_from_commit = async (
-  origin,
   request_id,
   from_table,
   commit_id,
 ) => {
   try {
-    await throw_verify_select(origin, request_id, from_table, commit_id);
+    await throw_verify_select(request_id, from_table, commit_id);
     return true;
   } catch (error) {
     return false;
@@ -547,13 +546,12 @@ export const verify_select_from_commit = async (
 
 
 export const verify_select_from_select = async (
-  origin,
   request_id,
   from_table,
   last_from_from_table,
 ) => {
   try {
-    await throw_verify_select(origin, request_id, from_table, null, last_from_from_table);
+    await throw_verify_select(request_id, from_table, null, last_from_from_table);
     return true;
   } catch (error) {
     return false;
@@ -605,13 +603,20 @@ export const save_select_results = async (
 
 
 export const throw_verify_select = async (
-  origin,
   request_id,
   table,
   requested_commit,
   last_table
 ) => {
+  /*
+  console.log({
+    request_id,
+    table,
+    requested_commit,
+    last_table
+  })
   console.log(table);
+  */
   return;
 
   const nested = (last_table != null);

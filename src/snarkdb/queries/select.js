@@ -36,7 +36,9 @@ export const execute_select_query = async (query) => {
     return await execute_select_query_owned(query, froms, fields, where);
 
   const query_id = random_variable_name();
-  const table = select_query_to_table(query_id, froms, fields, where, aggregates);
+  const table = select_query_to_table(
+    global.context.account.address().to_string(), query_id, froms, fields, where, aggregates
+  );
   const query_program_code = table.program.code;
 
   await save_query(query_id, String(sql), froms,);
@@ -153,14 +155,14 @@ export const execute_select_query_owned = async (
 }
 
 
-export const select_query_to_table = (query_id, froms, fields, where, aggregates) => {
+export const select_query_to_table = (origin, query_id, froms, fields, where, aggregates) => {
   const table_name = query_id;
   const columns = fields.map(({ column, ref }) => ({
     ...column,
     attribute: ref,
   }));
   const table = Table.from_columns(
-    global.context.account.address().to_string(),
+    origin,
     table_name,
     columns,
     null,

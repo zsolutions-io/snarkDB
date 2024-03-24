@@ -276,7 +276,7 @@ export async function sync_queries() {
       }
       if (!results_data.checked) {
         const valid = await verify_query_results(query_id, query);
-        await get_query_results(query_id, query,);
+        await get_query_results(query_id, query);
         results_data = {
           checked: true,
           valid,
