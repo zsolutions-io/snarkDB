@@ -176,7 +176,7 @@ async function merge_query(owner, query_id) {
 }
 
 async function merge_executions(owner, query_id) {
-  const public_query_executions_dir = get_query_executions_dir(owner, query_id, true);
+  const public_query_executions_dir = get_query_executions_dir(owner, query_id);
   if (!(await fsExists(public_query_executions_dir))) {
     return;
   }
