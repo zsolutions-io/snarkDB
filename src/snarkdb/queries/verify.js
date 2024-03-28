@@ -18,8 +18,9 @@ export const verify_query_results = async (query_id, query) => {
   ).at(-1);
   const commit_ids = decode_base58_to_commit_ids(encoded_commit_ids);
   return await verify_select_from_commit(
+    query,
     query_id,
-    query.table,
+    query.froms[0],
     commit_ids.data_commit_id,
   );
 }

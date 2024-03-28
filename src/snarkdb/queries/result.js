@@ -17,11 +17,12 @@ import {
 import fs from 'fs/promises';
 import fsExists from 'fs.promises.exists';
 
-
+import {
+  initThreadPool
+} from "@aleohq/sdk";
 
 
 export const retrieve_query_result = async (query_id) => {
-  return await sync_queries();
   const view_key = global.context.account.viewKey();
 
   const query = await get_query_from_id(view_key, query_id);
@@ -31,6 +32,7 @@ export const retrieve_query_result = async (query_id) => {
   if (query.status !== "processed") {
     throw new Error(`Query with id '${query_id}' not processed.`);
   }
+
   if (results_data == null || !results_data.checked) {
     throw new Error(`Query with id '${query_id}' not verified yet.`);
   }

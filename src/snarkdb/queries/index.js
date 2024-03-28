@@ -141,6 +141,7 @@ export const get_query_from_id = async (view_key, query_id) => {
     all_owned,
     aggregates,
   } = select_query;
+  query.froms = froms;
   query.table = select_query_to_table(query.data.origin, query_id, froms, fields, where, aggregates);
   query.table.query = select_query;
   const address = global.context.account.address().to_string();

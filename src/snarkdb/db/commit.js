@@ -12,6 +12,7 @@ import {
   get_table_commit_dir,
   get_query_executions_dir,
   get_query_execution_dir,
+  get_merged_query_executions_dir,
 } from 'snarkdb/db/index.js';
 
 import { Table, description_struct_name } from 'snarkdb/sql/table.js';
@@ -532,14 +533,16 @@ const execute_select_on_row = async (
 
 
 export const verify_select_from_commit = async (
+  query,
   request_id,
   from_table,
   commit_id,
 ) => {
   try {
-    await throw_verify_select(request_id, from_table, commit_id);
+    await throw_verify_select(query, request_id, from_table, commit_id);
     return true;
   } catch (error) {
+    console.log(error);
     return false;
   }
 }
@@ -603,30 +606,24 @@ export const save_select_results = async (
 
 
 export const throw_verify_select = async (
+  query,
   request_id,
   table,
-  requested_commit,
+  requested_commit_id,
   last_table
 ) => {
-  /*
-  console.log({
-    request_id,
-    table,
-    requested_commit,
-    last_table
-  })
-  console.log(table);
-  */
-  return;
-
+  await query.table.program.save();
+  await table.program.save();
   const nested = (last_table != null);
   const address = global.context.account.address().to_string();
 
   let last_executions_dir = null;
   let last_execution_indexes = null;
-  const executions_dir = get_query_executions_dir(
-    origin, request_id, true
+  const all_executions_dir = get_merged_query_executions_dir(
+    request_id,
   );
+  const executions_dir = `${all_executions_dir}/0`;
+
   const executions_dir_exists = await fsExists(executions_dir);
   if (!executions_dir_exists) {
     throw new Error(`Request '${request_id}' has no executions.`);
@@ -637,11 +634,10 @@ export const throw_verify_select = async (
   ).sort(
     (a, b) => a - b
   );
-  let expected_execution_amount = 0;
 
-  console
 
   if (nested) {
+    const expected_execution_amount = 0;
     last_executions_dir = get_query_executions_dir(
       origin,
       table.name,
@@ -661,18 +657,14 @@ export const throw_verify_select = async (
     );
     expected_execution_amount = last_execution_indexes.length;
     last_execution_indexes.pop();
+    if (execution_indexes.length !== expected_execution_amount) {
+      throw new Error(
+        `Request '${request_id}' has ${execution_indexes.length} executions,`
+        + ` but ${expected_execution_amount} were expected.`
+      );
+    }
   }
-  else {
-    expected_execution_amount = (
-      requested_commit.index * table.settings.max_new_rows_per_push + 1
-    );
-  }
-  if (execution_indexes.length !== expected_execution_amount) {
-    throw new Error(
-      `Request '${request_id}' has ${execution_indexes.length} executions,`
-      + ` but ${expected_execution_amount} were expected.`
-    );
-  }
+
   const [init_index, ...other_indexes] = execution_indexes;
 
   const execution_path = `${executions_dir}/${init_index}.json`;
@@ -697,6 +689,11 @@ export const throw_verify_select = async (
 
   const program_code = await load_cached_program_source(request_id);
 
+  const empty_inputs = process_select_empty_input(
+    address,
+    program_code,
+    table.name
+  );
   const [
     proving_key,
     verifying_key
@@ -704,13 +701,10 @@ export const throw_verify_select = async (
     request_id,
     program_code,
     process_function_name,
-    process_select_empty_input(
-      address,
-      program_code,
-      table.name
-    ),
+    empty_inputs,
     global.context.account.privateKey().to_string(),
   );
+
   for (const index of other_indexes) {
     const execution_path = `${executions_dir}/${index}.json`;
     const execution_data = await fs.readFile(execution_path, 'utf8');
@@ -748,9 +742,9 @@ export const throw_verify_select = async (
       }
     }
   }
-  if (!nested && commit !== requested_commit.id) {
+  if (!nested && commit !== requested_commit_id) {
     throw new Error(
-      `Final commit does not match requested commit '${requested_commit.id}'.`
+      `Final commit does not match requested commit '${requested_commit_id}'.`
     );
   }
 }
@@ -775,7 +769,7 @@ const process_select_empty_input = (
   database, program_code, table_name
 ) => {
   const address = global.context.account.address().to_string();
-  const row_data = get_empty_row_data_from_code(database, program_code, table_name);
+  const row_data = get_empty_row_data_from_code(database, program_code, table_name, "private");
   const nonce = "2group";
 
   const row_record = (

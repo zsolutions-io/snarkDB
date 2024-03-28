@@ -1,6 +1,6 @@
 # snarkDB
 
-snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases such as private set intersection, proof of data origin or proof of conform processing.
+snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases such as private set intersection, proof of data origin or proof of conform processing over saved data.
 
 ## Install
 
@@ -23,6 +23,8 @@ node . account test
 ```
 
 ## Datasources
+
+### Options
 
 Supported RDBMS are:
 
@@ -48,36 +50,18 @@ Supported RDBMS are:
 
 For more information, see [typeorm datasources documentation](https://github.com/typeorm/typeorm/blob/master/docs/data-source-options.md#what-is-datasourceoptions).
 
+### Add a datasource
+
+### Expose a table
+
 ## Select request
 
 ```bash
 node . execute "\
 SELECT column1 as col1 \
-FROM aleo103nyxgwktwavyv4l06mns6cqze3s9l6dwu7w8hvfkasrzrs4k5pscv370h.first_table
+FROM peer_name.first_table
 "
 ```
-
-## Table name format rules
-
-- 25 characters maximum
-- First character : lowercase letter
-- Other characters : lowercase letter | underscore | digit
-
-## Implemented
-
-- CREATE TABLE
-- INSERT
-- JOIN
-- Single table WHERE
-
-## Left to implement
-
-- DELETE
-- JOIN
-- UPDATE
-- INSERT TABLE
-- Multiple table WHERE
-- JOIN
 
 ## Accounts
 
@@ -139,7 +123,9 @@ nested_select owner :
 
 ## Todo
 
+- Save table on end of sync
 - Query proof verification
+- Query proof verification load capacity
 - String support
 - Nested query (proof + verification)
 - JOIN

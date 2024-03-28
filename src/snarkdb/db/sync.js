@@ -32,6 +32,7 @@ import {
   get_merged_query_execution_dir,
   get_query_execution_dir,
   merged_dir,
+  get_tables_dir,
 } from "snarkdb/db/index.js";
 import { connect_to_peer } from "peers/index.js";
 
@@ -105,11 +106,12 @@ export async function init_ipfs() {
 
 export async function continuous_tables_sync(node, ipfs_fs, ipns) {
   while (true) {
-    await sync_tables();
     try {
+      await sync_tables();
       await sync_public_dir(
         node, ipfs_fs, ipns, "tables", get_database_tables_dir
       );
+      await cache_tables_data();
     } catch (e) {
       console.log(`Error syncing public tables:`);
       console.log(e);
@@ -281,11 +283,9 @@ export async function sync_queries() {
           checked: true,
           valid,
         };
-        /*
         await save_query_private_result_data(
           query.data.origin, query.data.hash, results_data
         );
-        */
       }
     } catch (e) {
       console.log(`Error processing query '${query_id}':`);
