@@ -9,34 +9,64 @@ SnarkDB is a CLI for exposing any RDBMS to zero knowledge SQL queries. Allowing 
 ## Table of Contents
 
 - [1. Getting started](#1-getting-started)
+  - [1.1 Install](#11-install)
+  - [1.2 Set up account](#12-set-up-account)
+  - [1.3 Start instance](#13-start-instance)
 - [2. Datasources](#2-datasources)
   - [2.1 Available datasources](#21-available-datasources)
   - [2.2 Add a datasource](#22-add-a-datasource)
   - [2.3 List datasources](#23-list-datasources)
 - [3. Tables](#3-tables)
+  - [3.1 Expose a table](#31-expose-a-table)
+  - [3.2 List tables](#32-list-tables)
+- [4. Peers](#4-peers)
+  - [4.1 Add a peer](#41-add-a-peer)
+  - [4.2 List peers](#42-list-peers)
+  - [4.3 List peer tables](#43-list-peer-tables)
+- [5. Queries](#5-queries)
+  - [5.1 Initiate a query](#51-initiate-a-query)
+  - [5.2 List queries](#52-list-queries)
+  - [5.3 Approve a query](#53-approve-a-query)
+  - [5.4 Get a query results](#54-get-a-query-results)
+- [6. Build](#6-build)
+  - [6.1 Build for production](#61-build-for-production)
+  - [6.1 Build during development](#62-build-during-development)
+- [7. Roadmap](#7-roadmap)
 
 ## 1. Getting started
 
 ### 1.1 Install
 
 ```bash
-npm install
+git clone https://github.com/bandersnatch-io/snarkdb && cd snarkdb && npm install
 ```
 
-### 1.2 Setting up an account
+### 1.2 Set up account
 
 Generate and save a new account:
 
 ```bash
-node . account new | \
-awk 'NR==4 {print "MNEMONIC="substr($0, 17)}' \
-> .env.local
+node . account new --save # --overwrite
 ```
 
 Verify it was generated correctly:
 
 ```bash
 node . account test
+```
+
+### 1.3 Start instance
+
+```bash
+npm start
+```
+
+### 1.4 Use the CLI
+
+In a new terminal:
+
+```bash
+node .
 ```
 
 ## 2. Datasources
@@ -159,8 +189,7 @@ Peers are other snarkDB instances you can connect to in order to query their exp
 node . peer add \
   --identifier 'steve' \
   --snarkdbId 'db1f2jcvdca2tl8d7e8fdmpxarscrscxqx6gm277s6d9gepdx3pd58qqfqgqyfzq7hjngl6j93qte6uwurn2g9yeu07l06phpkjqmt9r9n4tt80ev8h366r0h' \
-  --host '192.168.1.12' \
-  --port 3020
+  --host '192.168.1.12' # --port 3020
 ```
 
 ### 4.2 List peers
@@ -184,24 +213,34 @@ node . peer tables
 
 ### 5.1 Initiate a query
 
-To initiate a SQL query to any
+To initiate a SQL query to any peer:
 
 ```bash
-node . query execute '
-SELECT column1 as col1
-FROM peer_name.first_table
-'
+node . query execute 
+  --query '
+    SELECT id as uid
+    FROM peer_name.first_table
+    WHERE age > 18
+  '
 ```
 
-### 5.1 List queries
+### 5.2 List queries
 
-## 5.2 Start instance
-
-To sync your tables and initiate receive, send, execute, verify queries, you must run a snarkDB instance:
+To get incoming queries:
 
 ```bash
-npm run start
+node . query list --incoming
 ```
+
+To get outgoing queries:
+
+```bash
+node . query list --outgoing
+```
+
+### 5.3 Approve a query
+
+### 5.4 Get a query results
 
 ## 6. Build
 
@@ -220,7 +259,7 @@ npm run dev
 ## 7. Roadmap
 
 - Peer support in table expose
-- Account new --save --overwrite
+- Peer filter to query list
 - String support
 - Nested query (proof + verification)
 - JOIN (mechanism is ready)

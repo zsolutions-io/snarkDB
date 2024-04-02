@@ -40,7 +40,6 @@ export async function connect_to_peer(node, identifier) {
 
 
 export async function list_peers() {
-
   let peers = [];
   try {
     peers = await fs.readdir(

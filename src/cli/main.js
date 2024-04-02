@@ -29,6 +29,7 @@ import { snarkdb_account } from 'snarkdb/accounts/index.js';
 
 import colors from 'colors';
 
+
 dotenv.config({ path: path.resolve(root_path, '.env') });
 dotenv.config({ path: path.resolve(root_path, '.env.local') });
 
@@ -144,8 +145,11 @@ let result = await yargs(process.argv.slice(2))
 for (const command of Object.values(commands)) {
   const entrypoint = async (argv) => {
     argv = await argv;
-    if (!argv?._?.length || argv?._?.[0] !== "account" || argv?.SUBCOMMAND === "test")
+    if (!argv?._?.length || argv?._?.[0] !== "account" || argv?.SUBCOMMAND === "test") {
       await load_context(argv);
+    } else {
+      global.context = { verbosity: 1 };
+    }
     try {
       await command.entrypoint(argv);
       process.exit(0);

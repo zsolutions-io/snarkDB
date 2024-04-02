@@ -58,7 +58,6 @@ const list_pattern = `${name} ${list_name} [OPTIONS]`;
 const list_description = `List all existing peers.`;
 const list_help = get_help_message(null, list_pattern, list_description, null);
 
-
 const description = `Manage peers you want to request from.`;
 const _pattern = `${name} <SUBCOMMAND> [OPTIONS]`;
 const pattern = `${name} [SUBCOMMAND] [OPTIONS]`;

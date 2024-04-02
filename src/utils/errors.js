@@ -1,4 +1,3 @@
-
 export const display_error = (e) => {
   if (global.context.verbosity > 2) {
     return console.log("Invalid verbosity level.");
