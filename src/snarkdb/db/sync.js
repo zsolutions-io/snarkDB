@@ -111,7 +111,6 @@ export async function continuous_tables_sync(node, ipfs_fs, ipns) {
       await sync_public_dir(
         node, ipfs_fs, ipns, "tables", get_database_tables_dir
       );
-      await cache_tables_data();
     } catch (e) {
       console.log(`Error syncing public tables:`);
       console.log(e);
@@ -140,7 +139,15 @@ export async function continuous_queries_sync(node, ipfs_fs, ipns) {
 
 export async function merge_queries() {
   const public_queries_dir = get_queries_dir(true);
-  const owners = await fs.readdir(public_queries_dir);
+  let owners = [];
+  try {
+    owners = await fs.readdir(public_queries_dir);
+  } catch (e) {
+    if (e.code === "ENOENT") {
+      return;
+    }
+    throw e;
+  }
   for (const owner of owners) {
     const queries_dir = get_database_queries_dir(owner, true);
     const query_ids = await fs.readdir(queries_dir);
@@ -391,8 +398,10 @@ async function sync_remote_to_local(remote_path, local_dir_path, ipfs_fs) {
   to_remove.sort((a, b) => a.path.length - b.path.length);
   to_add.sort((a, b) => a.path.length - b.path.length);
 
-  console.log("sync_remote_to_local")
-  console.log({ to_add, to_remove })
+  if (global.context.verbosity > 1) {
+    console.log("sync_remote_to_local")
+    console.log({ to_add, to_remove })
+  }
 
   for (const file of to_remove) {
     try {
@@ -455,8 +464,10 @@ async function sync_local_to_remote(local_dir_path, remote_path, ipfs_fs) {
   to_remove.sort((a, b) => a.path.length - b.path.length);
   to_add.sort((a, b) => a.path.length - b.path.length);
 
-  console.log("sync_local_to_remote")
-  console.log({ to_add, to_remove })
+  if (global.context.verbosity > 1) {
+    console.log("sync_local_to_remote")
+    console.log({ to_add, to_remove })
+  }
   if (to_add.length === 0 && to_remove.length === 0) {
     return;
   }

@@ -27,7 +27,10 @@ export async function get_datasource_config(identifier) {
 
 
 export async function list_datasources() {
-  const datasources = await fs.readdir(datasources_dir);
+  let datasources = [];
+  try {
+    datasources = await fs.readdir(datasources_dir);
+  } catch (e) { }
   if (datasources.length === 0) {
     return console.log('No datasources found.');
   }

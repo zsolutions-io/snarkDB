@@ -40,11 +40,15 @@ export async function connect_to_peer(node, identifier) {
 
 
 export async function list_peers() {
-  const peers = await fs.readdir(
-    get_peers_dir(
-      global.context.account.address().to_string()
-    )
-  );
+
+  let peers = [];
+  try {
+    peers = await fs.readdir(
+      get_peers_dir(
+        global.context.account.address().to_string()
+      )
+    );
+  } catch (e) { }
   if (peers.length === 0) {
     return console.log('No peers found.');
   }

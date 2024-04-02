@@ -1,19 +1,34 @@
-# snarkDB
+<p align="center">
+    <img alt="snarkVM" width="200" src="https://i.ibb.co/MVytBck/Capture-d-e-cran-2024-03-26-a-14-04-11.png"/>
+</p>
 
 snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases such as private set intersection, proof of data origin or proof of conform processing over saved data.
 
-## Install
+## Table of Contents
+
+- [1. Getting started](#1-getting-started)
+- [2. Datasources](#2-datasources)
+  - [2.1 Available datasources](#21-available-datasources)
+  - [2.2 Add a datasource](#22-add-a-datasource)
+  - [2.3 List datasources](#23-list-datasources)
+- [3. Tables](#3-tables)
+
+## 1. Getting started
+
+### 1.1 Install
 
 ```bash
 npm install
 ```
 
-## Getting started
+### 1.2 Setting up an account
 
-Generate your mnemonic:
+Generate and save a new account:
 
 ```bash
-node . account new | sed -n '4p' | sed 's/^.\{16\}//' | awk '{print "MNEMONIC="$0}' > .env.local
+node . account new | \
+awk 'NR==4 {print "MNEMONIC="substr($0, 17)}' \
+> .env.local
 ```
 
 Verify it was generated correctly:
@@ -22,111 +37,186 @@ Verify it was generated correctly:
 node . account test
 ```
 
-## Datasources
+## 2. Datasources
 
-### Options
+A datasource is a RDBMS connected to your snarkDB instance so you can expose its tables to ZK queries.
+
+### 2.1 Available datasources
 
 Supported RDBMS are:
 
-- mysql
-- postgres
-- cockroachdb
-- sap
-- spanner
-- mariadb
-- sqlite
-- cordova
-- react-native
-- nativescript
-- sqljs
-- oracle
-- mssql
-- mongodb
-- aurora-mysql
-- aurora-postgres
-- expo
-- better-sqlite3
-- capacitor
+| RDBMS | SELECT | JOIN | INSERT |
+| :- | :-: |  :-: |  :-: |
+| [mysql](./DATASOURCES.MD#mysql--mariadb-data-source-options) | ✅ | 🕑 | 🕑 |
+| [postgres](./DATASOURCES.MD#postgres--cockroachdb-data-source-options) | ✅ | 🕑 | 🕑 |
+| [oracle](./DATASOURCES.MD#oracle-data-source-options) | ✅ | 🕑 | 🕑 |
+| [mongodb](./DATASOURCES.MD#mongodb-data-source-options) | ✅ | 🕑 | 🕑 |
+| [sqlite](./DATASOURCES.MD#sqlite-data-source-options) | ✅ | 🕑 | 🕑 |
+| [sap](./DATASOURCES.MD#) | ✅ | 🕑 | 🕑 |
+| [mssql](./DATASOURCES.MD#mssql-data-source-options) | ✅ | 🕑 | 🕑 |
+| [mariadb](./DATASOURCES.MD#mysql--mariadb-data-source-options) | ✅ | 🕑 | 🕑 |
+| [cockroachdb](./DATASOURCES.MD#postgres--cockroachdb-data-source-options) | ✅ | 🕑 | 🕑 |
+| [spanner](./DATASOURCES.MD#) | ✅ | 🕑 | 🕑 |
+| [cordova](./DATASOURCES.MD#cordova-data-source-options) | ✅ | 🕑 | 🕑 |
+| [react-native](./DATASOURCES.MD#react-native-data-source-options) | ✅ | 🕑 | 🕑 |
+| [nativescript](./DATASOURCES.MD#nativescript-data-source-options) | ✅ | 🕑 | 🕑 |
+| [sqljs](./DATASOURCES.MD#sqljs-data-source-options) | ✅ | 🕑 | 🕑 |
+| [aurora-mysql](./DATASOURCES.MD#mysql--mariadb-data-source-options) | ✅ | 🕑 | 🕑 |
+| [aurora-postgres](./DATASOURCES.MD#postgres--cockroachdb-data-source-options) | ✅ | 🕑 | 🕑 |
+| [expo](./DATASOURCES.MD#expo-data-source-options) | ✅ | 🕑 | 🕑 |
+| [better-sqlite3](./DATASOURCES.MD#better-sqlite3-data-source-options) | ✅ | 🕑 | 🕑 |
+| [capacitor](./DATASOURCES.MD#capacitor-data-source-options) | ✅ | 🕑 | 🕑 |
 
-For more information, see [typeorm datasources documentation](https://github.com/typeorm/typeorm/blob/master/docs/data-source-options.md#what-is-datasourceoptions).
+For all available options for each datasource type, see [datasources documentation](./DATASOURCES.MD).
 
-### Add a datasource
+### 2.2 Add a datasource
 
-### Expose a table
-
-## Select request
+To connect a RDBMS to your snarkDB instance:
 
 ```bash
-node . execute "\
-SELECT column1 as col1 \
-FROM peer_name.first_table
-"
+node . datasource add \
+  --identifier mysql_database \
+  --datasourceJson '{
+    "type": "mysql",
+    "host": "127.0.0.1",
+    "port": 3306,
+    "username": "root",
+    "password": "my-secret-pw",
+    "database": "testdb"
+  }'
 ```
 
-## Accounts
+### 2.3 List datasources
 
--
+Check the datasource was correctly added:
 
-  SnarkDB
-    Mnemonic
-      fire enough truck lumber dice truly canoe midnight unit life flip quantum
-    SnarkDB Id
-      db1khfg47e43q476ylueukzx9t7t37ssn9v7g2ut0qtaq39afwaugrqqfqgqyfzpjqac0rjk9qqwtaq8sgq5pc7wdgw0rar6n76kwxzpertjm42rnnsl306ed
+```bash
+node . datasource list
+```
 
-  IPFS
-    Peer Id
-      12D3KooWPHY2qU2WspL3WnUXqAWkHP8UY6tWEMjjsYMTzuEME4r3
-    Pirivate Key
-      23jhTcAkwKrPYiqbxUPELzGTbcbZKbymLVC6SHviqpY9E51bGvcSJEXofcNFJiHNYvBjnRxcdJ29fWDmjHTikxyAUoTSX
+## 3. Tables
 
-  SnarkVM
-    Pirivate Key
-      APrivateKey1zkp6W6AkPZ7jXUbvsuUmqL9opDvvxtR1Saok82ajQaE1KL1
-    View Key
-      AViewKey1eDB5kB7yyCgcY45vnNAf7DFEpRHyK9UkdRR7ZLTYMN5Q
-    Address
-      aleo1khfg47e43q476ylueukzx9t7t37ssn9v7g2ut0qtaq39afwaugrqsfg0w6
+### 3.1 Expose a table
 
--
+In snarkDB, exposing a table means sharing a subset of its columns names and types to a defined set of users (snarkDB IDs).
 
-  SnarkDB
-    Mnemonic
-      misery tape betray sunset light barely slush mind juice crowd awake art
-    SnarkDB Id
-      db1wmn963nrnu0pmjamh85snqfqa7v700hjczfnpawf757cn7cc6cpqqfqgqyfzp6jgndhj2mpl6hk6unktqwguyzz3s4dlp70g3yj60yxxrejdr3fg2tkjan
+Exposed table can then be queried by those users. Those SQL queries are then accepted or not by from(s) table(s) owner(s).
 
-  IPFS
-    Peer Id
-      12D3KooWRaunSQYH73pt2WM4EoHmsbQPwc5Ef6usiJFfutyK1y2o
-    Pirivate Key
-      23jhTbRxEwJ4erbDinAVYN7EyGyty6pRxETvKdbcyUkiKsKx3tFjpkhiu2sBN9zUM1S6cb6EmAnTNhFvH4XYk6ZQNLzTR
+Table data (its rows) **are NOT shared** when a table is exposed, only after a query is accepted. **Only query result is divulgated to querier, not intermediate results or origin table data.**
 
-  SnarkVM
-    Pirivate Key
-      APrivateKey1zkp41zfhD3QBjgBm2VRpJtgNgTjY7ikfoFC1jLsjRgd5E5F
-    View Key
-      AViewKey1tFQ2UvMDzwMLNm69A3ZkJStp1XUdCVLscUrrS3h3STnX
-    Address
-      aleo1wmn963nrnu0pmjamh85snqfqa7v700hjczfnpawf757cn7cc6cpqdgdfjx
+To expose a table:
 
-table2 owner :
-  Private Key  APrivateKey1zkp8ynLk3wcRb4XzZ3C72mnt5fe8bNcpJ9MVxuBH4kqcvVf
-      Address  aleo15wktn0yr8vhxfzh9td7zhnrge9u6hra8tg4qtv2p9dumwc9mwgzqq63rlg
+```bash
+node . table expose \
+  --datasource mysql_database \
+  --sourceTable consumers \
+  --destinationTable users \
+  --visibility 'public' \
+  --capacity 10 \
+  # --syncPeriod 3600 \
+  # --columnsMapping 'user_id:id,age,is_activated' \
+```
 
-select owner :
-  Private Key  APrivateKey1zkpEUzXebwrhENw2EpDwvfW1Y6n42HUpwpDnD65jGx3aQ2r
-      Address  aleo1l96m5aqndzqm6253xee2j887xxh4c6w6h9ksdaknst9mq3xrfv8senek7g
+- `datasource` - Identifier of the datasource where table is located.
+This option is **required**.
 
-nested_select owner :
-  Private Key  APrivateKey1zkpHkJ47qxn8FjHgYhKotRv9cJxeGCLg42tezqhd6xZNWYD
-      Address  aleo1386l43hhduwmh7jdpnsfg7twwnkhzmjfp2zg89qadqq5al2d8sgsw96584
+- `sourceTable` - Name of the table within this datasource.
+This option is **required**.
 
-## Todo
+- `destinationTable` - Identifier of the table within snarkDB.
+This option is **required**.
 
-- Save table on end of sync
-- Query proof verification
-- Query proof verification load capacity
+- `visibility` - Who the table is exposed to, (ie: users who can see the exposed table column name and types as well as initiate query involving it).
+Either `'public'` or a list of comma separated  snarkDB IDs (or peer identifiers) as: `'steve,db1l67vf81v2d78dc23hsk'`.
+This option is **required**.
+
+- `capacity` - Maximum amount of element in the table. It allows to obfuscate the amount of elements in source table.
+This option is **required**.
+
+- `syncPeriod` - Table state is commited publicly every period (in seconds).
+Default is `3600`.
+
+- `columnsMapping` - Optional filter on exposed columns formatted as list of comma separated mappings `source_column:exposed_column`. For instance, `'user_id:id,age,is_activated'` means source column with name `user_id` is exposed as `id`, and `age` as well as `is_activated` are exposed with the same name.
+When not specified, all columns are exposed by default with the same name as in source.
+
+### 3.2 List tables
+
+Check the table was correctly exposed:
+
+```bash
+node . table list
+```
+
+## 4. Peers
+
+Peers are other snarkDB instances you can connect to in order to query their exposed tables.
+
+### 4.1 Add a peer
+
+```bash
+node . peer add \
+  --identifier 'steve' \
+  --snarkdbId 'db1f2jcvdca2tl8d7e8fdmpxarscrscxqx6gm277s6d9gepdx3pd58qqfqgqyfzq7hjngl6j93qte6uwurn2g9yeu07l06phpkjqmt9r9n4tt80ev8h366r0h' \
+  --host '192.168.1.12' \
+  --port 3020
+```
+
+### 4.2 List peers
+
+Check the peer was correctly added:
+
+```bash
+node . peer list
+```
+
+### 4.3 List peer tables
+
+To list tables exposed to your snarkDB account of a specific peer:
+
+```bash
+node . peer tables
+  --peerId steve
+```
+
+## 5. Queries
+
+### 5.1 Initiate a query
+
+```bash
+node . query execute '
+SELECT column1 as col1
+FROM peer_name.first_table
+'
+```
+
+## 5.2 Start instance
+
+A snarkDB instance receives, sends, executes, verifies queries.
+
+```bash
+npm run start
+```
+
+## 6. Build
+
+### 6.1 Build for production
+
+```bash
+npm run build
+```
+
+### 6.2 Build during development
+
+```bash
+npm run dev
+```
+
+## 7. Roadmap
+
+- Peer support in table expose
+- Account new --save --overwrite
 - String support
 - Nested query (proof + verification)
-- JOIN
+- JOIN (mechanism is ready)
 - Expressions for selected columns (Arithemtics + String manipulation)
+- INSERT INTO support of query results

@@ -10,6 +10,7 @@
     "build": "babel src -d dist --copy-files",
     "dev": "yarn build --verbose --watch",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node . start",
     "postinstall": "patch-package; cp patches/aleo_wasm.wasm node_modules/@aleohq/wasm/dist/assets/aleo_wasm.wasm; npm run build;"
   },
   "author": "",
