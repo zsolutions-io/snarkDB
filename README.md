@@ -2,7 +2,9 @@
     <img alt="snarkVM" width="200" src="https://i.ibb.co/MVytBck/Capture-d-e-cran-2024-03-26-a-14-04-11.png"/>
 </p>
 
-snarkDB is a tool for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases such as private set intersection, proof of data origin or proof of conform processing over saved data.
+<p align="center">
+snarkDB is a CLI for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases such as private set intersection, proof of data origin or proof of conform processing over saved data.
+</p>
 
 ## Table of Contents
 
@@ -182,6 +184,8 @@ node . peer tables
 
 ### 5.1 Initiate a query
 
+To initiate a SQL query to any
+
 ```bash
 node . query execute '
 SELECT column1 as col1
@@ -189,9 +193,11 @@ FROM peer_name.first_table
 '
 ```
 
+### 5.1 List queries
+
 ## 5.2 Start instance
 
-A snarkDB instance receives, sends, executes, verifies queries.
+To sync your tables and initiate receive, send, execute, verify queries, you must run a snarkDB instance:
 
 ```bash
 npm run start

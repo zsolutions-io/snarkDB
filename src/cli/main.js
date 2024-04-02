@@ -29,8 +29,8 @@ import { snarkdb_account } from 'snarkdb/accounts/index.js';
 
 import colors from 'colors';
 
-dotenv.config({ path: path.resolve(root_path, '.env.local') });
 dotenv.config({ path: path.resolve(root_path, '.env') });
+dotenv.config({ path: path.resolve(root_path, '.env.local') });
 
 
 const load_context = async (argv) => {
