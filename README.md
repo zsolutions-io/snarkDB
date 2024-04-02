@@ -1,9 +1,9 @@
-<p align="center">
+<h1 align="center">
     <img alt="snarkVM" width="200" src="https://i.ibb.co/MVytBck/Capture-d-e-cran-2024-03-26-a-14-04-11.png"/>
-</p>
+</h1>
 
 <p align="center">
-snarkDB is a CLI for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases such as private set intersection, proof of data origin or proof of conform processing over saved data.
+SnarkDB is a CLI for exposing any RDBMS to zero knowledge SQL queries. Allowing a wide range of usecases such as private set intersection, proof of data origin or proof of conform processing over saved data.
 </p>
 
 ## Table of Contents
