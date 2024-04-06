@@ -900,11 +900,23 @@ const throw_incompatible_row_columns = (row, columns) => {
 }
 
 
-export const table_visibility_to_addresses = (visibility) => {
+export const table_visibility_to_addresses = async (visibility) => {
   visibility = (visibility === "public" || visibility === "") ?
     "aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc" :
     visibility;
-  const addresses = visibility.split(",");
+  const peer_or_addresses = visibility.split(",");
+
+  const addresses = await Promise.all(
+    peer_or_addresses.map(
+      async (peer_or_address) => {
+        if (is_valid_address(peer_or_address))
+          return peer_or_address;
+        const { aleo_address } = await get_peer(peer_or_address);
+        return aleo_address;
+      }
+    )
+  );
+
   return addresses;
 };
 

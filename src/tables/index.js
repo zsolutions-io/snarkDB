@@ -47,7 +47,7 @@ export async function expose_table(
   datasource_id,
   source_table,
   destination_table,
-  visiblity,
+  visibility,
   capacity,
   sync_period,
   columns_mapping,
@@ -65,7 +65,7 @@ export async function expose_table(
   }
   const columns = await getTableColumns(datasource, source_table, columns_mapping);
   const database = global.context.account.address().to_string()
-  const allowed_addresses = table_visibility_to_addresses(visiblity);
+  const allowed_addresses = await table_visibility_to_addresses(visibility);
 
   const definition = {
     settings: {
