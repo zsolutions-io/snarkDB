@@ -1,4 +1,8 @@
-import { get_peer_dir, get_peers_dir } from "snarkdb/db/index.js";
+import {
+  get_peer_dir,
+  get_peers_dir,
+  get_database_tables_dir,
+} from "snarkdb/db/index.js";
 import { save_object } from "utils/fs.js";
 
 import fs from "fs/promises";
@@ -9,6 +13,8 @@ import { multiaddr } from '@multiformats/multiaddr';
 
 import { format_libp2p_location } from 'network/helia.js';
 
+import { read_access, empty_struct_to_columns } from 'snarkdb/sql/table.js';
+
 const config_file_name = 'config';
 
 
@@ -17,6 +23,35 @@ export async function get_peer(identifier) {
   return config;
 }
 
+
+export async function peer_tables(identifier, visible) {
+  const config = await get_peer_config(identifier);
+  const database = config.aleo_address;
+  const tables_path = get_database_tables_dir(database, true);
+  let tables = [];
+  try {
+    tables = await fs.readdir(tables_path);
+  } catch (e) { }
+  if (tables.length === 0) {
+    return console.log('No tables found.');
+  }
+  for (const table of tables) {
+    console.log(`- ${table}`);
+    try {
+      console.log(`Columns:`)
+      const schema = await read_access(database, table);
+      const columns = empty_struct_to_columns(schema);
+      for (const column of columns) {
+        console.log(`  ・ ${column.snarkdb.name}: ${column.snarkdb.type.value}`);
+      }
+    } catch (e) {
+      if (!visible) {
+        console.log(`Table not exposed to context account.`);
+      }
+    }
+    console.log();
+  }
+}
 
 export async function get_peer_config(identifier) {
   throw_invalid_identifier(identifier);
@@ -66,6 +101,9 @@ export async function list_peers() {
 
 export async function add_peer(identifier, snarkdb_id, host, port, overwrite) {
   throw_invalid_identifier(identifier);
+  if (port === undefined) {
+    port = global.context.port;
+  }
   const { aleo_address, ipfs_peer_id } = snarkdb_id_to_addresses(snarkdb_id);
   const peer_settings = { snarkdb_id, aleo_address, ipfs_peer_id, host, port };
   const peer_path = get_peer_dir(global.context.account.address().to_string(), identifier);

@@ -319,7 +319,7 @@ Table.from_parsed_table = async function ({
 }) {
   const { name, commit_id } = parse_table_name(table);
   const database = database_from_attribute(db);
-  const schema = await read_access(name, database);
+  const schema = await read_access(database, name,);
   const columns = empty_struct_to_columns(schema);
   return new Table.from_columns(
     database,
@@ -941,7 +941,7 @@ const save_encrypted_schema = async (
 
 
 
-const read_access = async (tablename, database) => {
+export const read_access = async (database, tablename) => {
   const context_view_key = global.context.account.viewKey();
   const table_definitions_dir = get_table_dir(
     database, tablename, true
@@ -1007,7 +1007,7 @@ const value_to_snarkdb = (value, type) => {
 }
 
 
-const empty_struct_to_columns = (schema) => {
+export const empty_struct_to_columns = (schema) => {
   const columns =
     schema
       .replace(/\s/g, "")

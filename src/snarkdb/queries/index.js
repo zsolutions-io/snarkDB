@@ -83,13 +83,13 @@ export const list_queries = async (incoming, outgoing) => {
 
       let displayed_status = query.status;
       if (query.status === "pending") {
-        displayed_status = `Pending from ${query.next.executor.italic}`.blue.bold;
+        displayed_status = `Pending approval from ${query.next.executor.italic}`.blue.bold;
       }
       if (query.status === "processed") {
-        displayed_status = "Processed".green.bold;
+        displayed_status = "Approved".green.bold;
       }
       if (query.status === "to_process") {
-        displayed_status = "To process".red.bold;
+        displayed_status = "Pending your approval".red.bold;
       }
       display_query_data(
         {

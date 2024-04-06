@@ -116,8 +116,6 @@ Supported RDBMS are:
 | [better-sqlite3](./DATASOURCES.MD#better-sqlite3-data-source-options) | ✅ | 🕑 | 🕑 |
 | [capacitor](./DATASOURCES.MD#capacitor-data-source-options) | ✅ | 🕑 | 🕑 |
 
-For all available options for each datasource type, see [datasources documentation](./DATASOURCES.MD).
-
 ### 2.2 Add a datasource
 
 To connect a RDBMS to your snarkDB instance:
@@ -134,6 +132,8 @@ snarkdb datasource add \
     "database": "mysql_database"
   }'
 ```
+
+For all available options for each datasource type, see [datasources documentation](./DATASOURCES.MD).
 
 ### 2.3 List datasources
 
@@ -256,7 +256,7 @@ snarkdb query list --outgoing
 
 ### 5.3 Approve a query
 
-To approve an incoming query labeled as `to process`.
+To approve an incoming query with status as `Pending your approval`.
 
 ```bash
 node . query approve --queryId ki217izn80a9gekcw47nldc00
@@ -305,17 +305,9 @@ npm run dev
 
 ## 7. Roadmap
 
-### Urgent
-
-- Peer support in table expose
-- List peer tables
-- Peer filter to query list
-- Default port for peer add
-
-### Other
-
 - Nested query (ready to be integrated - proof + verification)
 - JOIN (ready to be integrated -  proof + verification)
 - Transpile expressions as aleo instructions for selected columns (Arithemtics + String manipulation)
 - INSERT query results INTO datasource table support
 - String data support
+- Add peer filter to query list

@@ -2,6 +2,7 @@ import {
   list_peers,
   add_peer,
   remove_peer,
+  peer_tables,
 } from "peers/index.js";
 
 import { get_help_message } from "../help.js"
@@ -29,7 +30,7 @@ const add_args = [
   {
     name: "port",
     description: "Port of the peer.",
-    required: true,
+    required: false,
   },
   {
     name: "overwrite",
@@ -53,6 +54,24 @@ const remove_pattern = `${name} ${remove_name} [OPTIONS]`;
 const remove_description = `Remove an existing peer.`;
 const remove_help = get_help_message(null, remove_pattern, remove_description, remove_args);
 
+
+const tables_name = "tables";
+const tables_args = [
+  {
+    name: "identifier",
+    description: "Local identifier of the peer to list tables.",
+    required: true,
+  },
+  {
+    name: "visible",
+    description: "Display only tables exposed to context account.",
+    required: true,
+  },
+];
+const tables_pattern = `${name} ${tables_name} [OPTIONS]`;
+const tables_description = `List tables of a peer.`;
+const tables_help = get_help_message(null, tables_pattern, tables_description, tables_args);
+
 const list_name = "list";
 const list_pattern = `${name} ${list_name} [OPTIONS]`;
 const list_description = `List all existing peers.`;
@@ -61,6 +80,7 @@ const list_help = get_help_message(null, list_pattern, list_description, null);
 const description = `Manage peers you want to request from.`;
 const _pattern = `${name} <SUBCOMMAND> [OPTIONS]`;
 const pattern = `${name} [SUBCOMMAND] [OPTIONS]`;
+
 
 
 const actions = [
@@ -76,7 +96,12 @@ const actions = [
     name: list_name,
     description: list_description
   },
+  {
+    name: tables_name,
+    description: tables_description
+  },
 ];
+
 
 const entrypoint = async (args) => {
   const { SUBCOMMAND: subcommand } = args;
@@ -92,6 +117,11 @@ const entrypoint = async (args) => {
     if (identifier == null)
       return console.log(remove_help);
     return await remove_peer(identifier);
+  } else if (subcommand === tables_name) {
+    const { identifier, visible } = args;
+    if (identifier == null)
+      return console.log(tables_help);
+    return await peer_tables(identifier, visible);
   }
   console.log(get_help_message(actions, _pattern, description, null));
 };
