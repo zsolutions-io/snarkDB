@@ -1,5 +1,9 @@
 <h1 align="center">
-    <img alt="snarkVM" width="200" src="./logo.png"/>
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="./logo.png">
+        <source media="(prefers-color-scheme: light)" srcset="./logo.png">
+        <img alt="Shows an illustrated sun in light mode and a moon with stars in dark mode." src="./logo.png">
+    </picture>
 </h1>
 
 <p align="center">
