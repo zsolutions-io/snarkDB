@@ -84,7 +84,7 @@ snarkdb start
 
 ### 1.4 Use the CLI
 
-You are all set, in a new terminal:
+You are all set. Now in a new terminal:
 
 ```bash
 snarkdb
