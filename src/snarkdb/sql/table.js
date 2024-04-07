@@ -23,6 +23,7 @@ import crypto from "crypto";
 import { table_insert_function, table_encrypt_closure, } from "./insert.js";
 import { random_from_type, } from 'aleo/types/index.js';
 import { hash_str } from "aleo/proof.js";
+import { snarkdb_id_to_addresses } from 'snarkdb/accounts/index.js';
 
 import {
   encrypt_for_anyof_addresses_to_file,
@@ -911,6 +912,10 @@ export const table_visibility_to_addresses = async (visibility) => {
       async (peer_or_address) => {
         if (is_valid_address(peer_or_address))
           return peer_or_address;
+        try {
+          const { aleo_address } = snarkdb_id_to_addresses(peer_or_address)
+          return aleo_address;
+        } catch (e) { }
         const { aleo_address } = await get_peer(peer_or_address);
         return aleo_address;
       }
