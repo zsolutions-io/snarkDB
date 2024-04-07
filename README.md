@@ -1,8 +1,8 @@
 <h1 align="center">
     <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="./logo.png">
-        <source media="(prefers-color-scheme: light)" srcset="./logo.png">
-        <img alt="Shows an illustrated sun in light mode and a moon with stars in dark mode." src="./logo.png">
+        <source media="(prefers-color-scheme: dark)" srcset="./logo-dark.png" width="350">
+        <source media="(prefers-color-scheme: light)" srcset="./logo.png" width="350">
+        <img alt="snarkDB logo" src="./logo.png" width="350">
     </picture>
 </h1>
 
