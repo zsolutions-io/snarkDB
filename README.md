@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img alt="snarkVM" width="200" src="https://i.ibb.co/MVytBck/Capture-d-e-cran-2024-03-26-a-14-04-11.png"/>
+    <img alt="snarkVM" width="200" src="./logo.png"/>
 </h1>
 
 <p align="center">
