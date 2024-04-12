@@ -553,7 +553,7 @@ const table_from_columns = (table_name, columns, is_view) => {
       structs: table_structs(table_name, columns),
       records: table_records(table_name, is_view),
       mappings: [],
-      closures: table_closures(table_name, columns),
+      closures: table_closures(table_name, columns, is_view),
       functions: table_functions(table_name, is_view),
     }
   );
@@ -595,8 +595,8 @@ const table_dsk_struct = (table_name, columns) => {
   };
 }
 
-const table_closures = (table_name, columns) => {
-  return [
+const table_closures = (table_name, columns, is_view) => {
+  return is_view ? [] : [
     table_encrypt_closure(table_name, columns),
   ];
 }
@@ -745,6 +745,8 @@ const add_db_and_commit = async (table) => {
       return;
   }
   const commit = await table_last_commit(table.db, table.table);
+  if (commit == null)
+    throw Error(`Table '${full_name}' not found, for address '${table.db}'.`);
   table.table = format_table_name_commit(full_name, commit.id)
   return;
 }
@@ -765,8 +767,13 @@ const format_table_name_commit = (name, commit_id) => {
 
 export const get_fields_from_parsed_columns = (query_columns, all_fields) => {
   let fields = [];
+  let relevant_fields = [];
   for (const column of query_columns) {
-    fields = fields.concat(get_fields_from_parsed_column(column, all_fields));
+    const {
+      fields: this_fields, relevant_fields: this_relevant_fields
+    } = get_fields_from_parsed_column(column, all_fields);
+    fields = fields.concat(this_fields);
+    relevant_fields = relevant_fields.concat(this_relevant_fields);
   }
   const duplicates = get_duplicates(
     fields.map((row) => `'${row.ref}'`)
@@ -777,7 +784,7 @@ export const get_fields_from_parsed_columns = (query_columns, all_fields) => {
       + `Use 'as' to rename them.`
     );
   }
-  return fields;
+  return { fields, relevant_fields };
 }
 
 
@@ -811,41 +818,131 @@ const get_all_fields_from_table = (table) => {
 }
 
 
-export const get_fields_from_parsed_column = (column, all_fields) => {
+export const get_fields_from_parsed_column = (
+  column, all_fields, relevant_fields
+) => {
+  const top_level = (relevant_fields == null)
+  if (top_level) {
+    relevant_fields = []
+  };
+  let columns = null;
   if (column.expr.type === "aggr_func") {
-    console.log(column.expr.args.expr);
+    // console.log(column.expr.args.expr);
     throw Error("Aggregate functions are not supported for now."); // TODO : implement aggregate functions
   }
-  if (column.expr.type !== "column_ref")
-    throw Error("Can only select column references for now."); // TODO : implement select expressions
+  if (column.expr.type === "column_ref") {
+    columns = get_fields_from_column_ref(column, all_fields, relevant_fields);
+  }
+  else if (column.expr.type === "binary_expr") {
+    columns = get_fields_from_binary_expr(column, all_fields, relevant_fields);
+  }
+  else if (column.expr.type === "number") {
+    if (top_level)
+      throw Error("Number literals are not supported as selected columns.");
+    columns = get_fields_from_number(column, all_fields);
+  }
+  else if (column.expr.type === "function") {
+    columns = get_fields_from_function(column, all_fields, relevant_fields);
+  }
+  else {
+    throw Error(`Unsupported operation type: '${column.expr.type}'.`);
+  }
+  const fields = columns.map((field, i) => ({
+    ...field,
+    ref: column.as || field.ref || expression_to_column_name(column.expr, i)
+  }));
+  return { fields, relevant_fields };
+}
 
+const expression_to_column_name = (expr, i) => {
+  return `expr_${i}`;
+}
+
+export const get_fields_from_number = (column, all_fields) => {
+  return [{
+    type: "number",
+    value: column.expr.value,
+    column: {
+      snarkdb: { type: { category: 'integer', value: 'u128' } }
+    }
+  }];
+}
+
+
+export const get_fields_from_function = (column, all_fields, relevant_fields) => {
+  const args = column.expr.args.value.map(
+    (arg) => get_fields_from_parsed_column({ expr: arg }, all_fields, relevant_fields).fields
+  ).reduce((acc, val) => acc.concat(val), []);
+  const func_name = column.expr.name;
+  return [{
+    type: "function",
+    name: func_name,
+    args,
+    column: {
+      snarkdb: {
+        type: get_type_from_function(func_name, args)
+      }
+    }
+  }]
+}
+
+
+const get_type_from_function = (func_name, args) => {
+  return args[0]?.column?.snarkdb?.type;
+}
+
+export const get_fields_from_binary_expr = (column, all_fields, relevant_fields) => {
+  const left_fields = get_fields_from_parsed_column(
+    { expr: column.expr.left }, all_fields, relevant_fields
+  ).fields;
+  const right_fields = get_fields_from_parsed_column(
+    { expr: column.expr.right }, all_fields, relevant_fields
+  ).fields;
+  if (left_fields.length !== 1 || right_fields.length !== 1) {
+    console.log({ column, all_fields, left_fields, right_fields });
+    throw Error("Binary expressions should have only one column on each side.");
+  }
+  return [{
+    type: "binary_expr",
+    left: left_fields[0],
+    right: right_fields[0],
+    column: {
+      snarkdb: {
+        type: left_fields[0]?.column?.snarkdb?.type || right_fields[0]?.column?.snarkdb?.type
+      }
+    }
+  }];
+}
+
+export const get_fields_from_column_ref = (column, all_fields, relevant_fields) => {
   const concerned_fields = !column.expr.table ? all_fields : all_fields.filter(
     (field) => field.table.ref === column.expr.table
   );
-
   if (concerned_fields.length === 0)
-    throw Error(`Table '${column.expr.table}' not found.`);
-
+    throw Error(`Table '${column.expr.table}' not found.`)
   const columns = concerned_fields
     .filter((field) => (
       column.expr.column === "*"
       || field.column.snarkdb.name === column.expr.column
     ))
-    .map((field) => {
-      field.ref = column.as || field.column.snarkdb.name;
-      return field;
-    });
+    .map((field) => ({
+      ...field,
+      ref: column.as || field.column.snarkdb.name,
+      type: "column_ref"
+    }));
 
   if (columns.length === 0 && column.expr.column !== "*")
     throw Error(`Column '${column.expr.column}' not found.`);
-
+  columns.forEach(col => relevant_fields.push(col));
   return columns;
 }
 
 
+
 const column_to_attribute = (column) => {
+  console.log({ column_to_attribute: column })
   return {
-    name: column.snarkdb.name,
+    name: column.attribute || column.snarkdb.name,
     type: column.snarkdb.type,
   };
 }

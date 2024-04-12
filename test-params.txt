@@ -1,0 +1,2 @@
+basket weather tornado gaze embody viable magic remind trap beef beach degree
+snarkdb query execute --mnemonic "basket weather tornado gaze embody viable magic remind trap beef beach degree" --query 'SELECT 2*col_2_1 as st FROM first.table2'

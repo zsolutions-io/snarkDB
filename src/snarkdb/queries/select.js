@@ -40,6 +40,7 @@ export const execute_select_query = async (query) => {
     global.context.account.address().to_string(), query_id, froms, fields, where, aggregates
   );
   const query_program_code = table.program.code;
+  console.log(query_program_code);
 
   await save_query(query_id, String(sql), froms,);
   // const program = await deploy_program(code);
@@ -49,12 +50,15 @@ export const execute_select_query = async (query) => {
 export const load_select_query = async (query) => {
   const froms = await get_tables_from_parsed_tables(query?.from);
   const all_fields = get_all_fields(froms);
-  const fields = get_fields_from_parsed_columns(query.columns, all_fields);
+  const {
+    fields, relevant_fields
+  } = get_fields_from_parsed_columns(query.columns, all_fields);
   const where = parse_where_expression(query.where, froms, fields, all_fields);
   const aggregates = [];
+  console.log(fields)
   //get_aggregates_from_parsed_columns(fields);
   //console.log({ where: where.right.value[2] });
-  const all_owned = fields.every(
+  const all_owned = relevant_fields.every(
     ({ table }) => (
       table.database === global.context.account.address().to_string()
     )
@@ -151,12 +155,14 @@ const save_query_public_data = async (
 export const execute_select_query_owned = async (
   query, froms, fields, where
 ) => {
+  console.log("No need for a snark for this query, all tables are owned by context account.");
   return;
 }
 
 
 export const select_query_to_table = (origin, query_id, froms, fields, where, aggregates) => {
   const table_name = query_id;
+  console.log(fields);
   const columns = fields.map(({ column, ref }) => ({
     ...column,
     attribute: ref,

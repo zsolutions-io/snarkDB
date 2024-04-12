@@ -23,6 +23,7 @@ import { Signature, Address } from '@aleohq/sdk';
 import crypto from 'crypto';
 export * from "./process.js";
 
+
 export const execute_query = async (query) => {
   query = String(query)
   const parser = new NodeSQLParser.Parser();

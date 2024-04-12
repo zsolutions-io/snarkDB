@@ -2,7 +2,7 @@
     <picture>
         <source media="(prefers-color-scheme: dark)" srcset="./snarkdb-logo-dark.png" width="350">
         <source media="(prefers-color-scheme: light)" srcset="./snarkdb-logo.png" width="350">
-        <img alt="snarkDB logo" src="./snarkdb-logo.png" width="350">
+        <img alt="snarkDB" src="./snarkdb-logo.png" width="350">
     </picture>
 </h1>
 
