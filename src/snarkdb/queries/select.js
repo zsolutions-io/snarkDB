@@ -423,17 +423,7 @@ const single_from_select_process_function = (
           },
         ],
       },
-      {
-        opcode: "cast",
-        inputs: select_filter_cast_inputs(vars, fields),
-        outputs: [{
-          name: vars.let("temp_select_result_data"),
-          type: {
-            category: "custom",
-            value: to.description_struct.name,
-          },
-        }],
-      },
+      ...get_single_select_instructions(vars, to, fields),
       ...get_single_from_where_instructions(vars, where),
       {
         opcode: "not",
@@ -726,6 +716,79 @@ const parse_column_ref_expression = (expression, froms, fields, all_fields) => {
 const parse_binary_expr_expression = (expression) => {
   const { left, right, operator } = expression;
   return expression;
+}
+
+
+const get_single_select_instructions = (vars, to, fields) => {
+  const instructions = [];
+  const cast_inputs = [];
+
+  let res_var_index = 0;
+  for (const field of fields) {
+    if (field.type === "column_ref") {
+      cast_inputs.push({
+        name: `${vars.get("selected_table_record")}.data.${field.column.snarkdb.name}`,
+      });
+    }
+    else if (field.type === "number") {
+      const val = field.value;
+      if (!Number.isInteger(val)) {
+        throw new Error(
+          `Non integer numbers not supported yet.`
+        );
+      }
+      cast_inputs.push({
+        name: `${val}u128`,
+      });
+    }
+    else if (field.type === "bool") {
+      cast_inputs.push({
+        name: `${field.value}`,
+      });
+    } // TODO: Function and expression
+    else if (field.type === "binary_expr") {
+      const res_var_name = `res_expr_${res_var_index}`
+      const binary_expr_instructions = get_binary_expr_select_instructions(vars, field, res_var_index);
+      if (binary_expr_instructions.length === 0) {
+        throw new Error(
+          `No instructions found for binary expression.`
+        );
+      }
+      binary_expr_instructions.at(-1).output = vars.let(res_var_name);
+      instructions.push(...binary_expr_instructions);
+      cast_inputs.push({
+        name: `${vars.get(res_var_name)}`,
+      });
+    }
+    else if (field.type === "function") {
+      throw new Error(
+        `Functions not impletmented yet`
+      );
+    }
+    res_var_index += 1;
+  }
+
+  instructions.push(
+    {
+      opcode: "cast",
+      inputs: cast_inputs,
+      outputs: [{
+        name: vars.let("temp_select_result_data"),
+        type: {
+          category: "custom",
+          value: to.description_struct.name,
+        },
+      }],
+    },
+  );
+  return instructions;
+}
+
+const get_binary_expr_select_instructions = (vars, field, res_var_index) => {
+  console.log({
+    vars, field, res_var_index
+  });
+  return []
 }
 
 const get_single_from_where_instructions = (vars, where) => {

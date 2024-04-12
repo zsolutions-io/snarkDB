@@ -775,8 +775,15 @@ export const get_fields_from_parsed_columns = (query_columns, all_fields) => {
     fields = fields.concat(this_fields);
     relevant_fields = relevant_fields.concat(this_relevant_fields);
   }
+  let i = 0;
+  fields.forEach((row) => {
+    if (row.ref == null) {
+      row.ref = `expr_${i}`
+      i += 1;
+    }
+  })
   const duplicates = get_duplicates(
-    fields.map((row) => `'${row.ref}'`)
+    fields.map((row) => `${row.ref}`)
   );
   if (duplicates.length > 0) {
     throw Error(
@@ -799,7 +806,7 @@ export const get_all_fields = (tables) => {
   );
   if (duplicates.length > 0) {
     throw Error(
-      `Ambigious selected columns: '${duplicates.join(", ")}'. `
+      `Ambigious selected columns: ${duplicates.join(", ")}. `
       + `Use 'as' to rename them.`
     );
   }
@@ -837,9 +844,10 @@ export const get_fields_from_parsed_column = (
     columns = get_fields_from_binary_expr(column, all_fields, relevant_fields);
   }
   else if (column.expr.type === "number") {
-    if (top_level)
-      throw Error("Number literals are not supported as selected columns.");
     columns = get_fields_from_number(column, all_fields);
+  }
+  else if (column.expr.type === "bool") {
+    columns = get_fields_from_boolean(column, all_fields);
   }
   else if (column.expr.type === "function") {
     columns = get_fields_from_function(column, all_fields, relevant_fields);
@@ -849,7 +857,7 @@ export const get_fields_from_parsed_column = (
   }
   const fields = columns.map((field, i) => ({
     ...field,
-    ref: column.as || field.ref || expression_to_column_name(column.expr, i)
+    ref: column.as || field.ref || null
   }));
   return { fields, relevant_fields };
 }
@@ -867,6 +875,18 @@ export const get_fields_from_number = (column, all_fields) => {
     }
   }];
 }
+
+
+export const get_fields_from_boolean = (column, all_fields) => {
+  return [{
+    type: "bool",
+    value: column.expr.value,
+    column: {
+      snarkdb: { type: { category: 'boolean', value: 'boolean' } }
+    }
+  }];
+}
+
 
 
 export const get_fields_from_function = (column, all_fields, relevant_fields) => {
@@ -940,7 +960,6 @@ export const get_fields_from_column_ref = (column, all_fields, relevant_fields) 
 
 
 const column_to_attribute = (column) => {
-  console.log({ column_to_attribute: column })
   return {
     name: column.attribute || column.snarkdb.name,
     type: column.snarkdb.type,
