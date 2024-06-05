@@ -232,6 +232,8 @@ snarkdb peer tables --peerId steve
 
 ## 5. Queries
 
+![Snarkdb user journey](./snarkdb_userjourney.drawio.png)
+
 ### 5.1 Initiate a query
 
 To initiate a SQL query to any peer:
